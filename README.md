@@ -1,4 +1,4 @@
 # paml4m
-Predictive Analytics &amp; Machine Learning for Managers - companion site for my book with the same name.
+Predictive Analytics &amp; Machine Learning for Managers (PAML4M) - companion site for my book with the same name.
 
 This repository contains knitted PDF files with R scripts, explanations with hands-on material related to the concepts covered in the PAML4M book. This repository is intended to be a companion for the book, but anyone with experience with predictive analytics and machine learning concepts can use this code independently. That is, the book is not required to follow the code, it just complements it. However, the book is self-published and inexpensive and it is very useful for managers interested in conceptual foundation about how to select, specify, develop, test and interpret models. The .Rmd R Markdown files that generated these PDFs are available from the author upon request. 
