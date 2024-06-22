@@ -1,0 +1,343 @@
+---
+title: "Appendix R5: Variable Selection"
+subtitle: "Multi-Collinearity, Subset Selection and Step Methods"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+     
+fig-width: 10
+fig-height: 6
+
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples about testing for violations of the OLS assumption of predictor independence and also to begin the process of selecting variables for your model. We illustrate a few popular methods to do systematic variable selection. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+---
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+# Overview
+
+Dimensionality is an important issue in predictive modeling. As we add predictors and complex transformations in our model, the bias of the model decreases while the explanatory power of the model increases, but the model variance also increases. This is the well known **bias vs. variance trade-off** in predictive modeling. This is not really a problem when the multicollinearity of the model is tolerable, but it really affects its performance when multicollinarity is severe. In such cases, we need to pay close attention to how we select our predictors and whether multicollinearity is a concern. The methods described in this script can help correct for multicollinearity when predictors causing the problem can be removed. If not, please refer to the methods described in Ch. 7, which are ideally suited for predictive modeling in the presence of multicollinearity. I first discuss how to diagnose multicollinearity and then illustrate how to do subset selection and run various step methods for variable selection.
+
+# 1. Multicollinearity
+
+High multicollinearity causes a lot of variance in the model. Multicollinearity is tolerable, unless it is severe, in which case it causes the the model to have high variance and become unstable to be reliable. If you drop a few observations, the resulting coefficients should not change much. But if they change substantially, chances are that your model suffers from high multicollinearity.
+
+Multicollinearity can be tested in two ways:
+
+-   Evaluate the **entire model** as a whole using the **Condition Index (CI)**. The multicollinearity condition of a model is an evaluation of the linear association of all the predictors together. This means two important things: (1) we don't need to evaluate the outcome variable, just the predictors; and (2) some variables may or may not have strong pairwise correlation, but the entire covariance structure of the predictors may exhibit multivariate linear associations that are not so easy to identify from the correlation matrix. For this purpose, we use the **CI**, which evaluates the overall linear association of all the predictors together.
+
+-   When the CI indicates that there is multicollinearity in the model's predictors, you can then inspect which specific predictors contribute the most to collinearity by inspecting the **Variance Inflation Variable (VIF)** of **each predictor**.
+
+**Technical Note:** Multicollinearity refers to the overall linear relationship relations in a set of predictors. In turn, collinearity refers to the correlation of pairs of predictors. The general process when testing for multicollinearity is to evaluate the CI of the full set of predictors in the model. If the CI suggests that multicollinearity is tolerable, you can move on. If the CI indicates severe multicollinearity beyond tolerable levels, you can then inspect each predictor with their respective VIFs. I discuss this in more detail below.
+
+## Condition Index (CI)
+
+**Technical Note:** The Condition Index (CI) is a general multicollinearity statistic for the full set of predictors in the model. The CI takes the covariance matrix of the predictors and computes its corresponding eigenvalues. As I discuss in more detail in Chapter 7, you can evaluate the dimensionality of a set of predictors by evaluating its eigenvalues. For example, if you have 3 predictors, you could draw a three-dimensional scatter plot of all your data points. You could then move the axes to the center of the data (i.e., all variables are at their means) and then rotate the axes until you find the direction in which the variance the largest. This direction is called the **First Eigenvector** and the variance along this direction is called the **First Eigenvalue**. You then keep this axis fixed and rotate the remaining 2 axes until you find the direction in which the variance is the second largest, which will yield the **Second Eigenvector-Eigenvalue** pair. And so ond. When the data has strong muliticollinearity, the first few eigenvectors will be easy to visualize because you will see the data points aligning in one or few directions. When there is little multicollinearity, the scatter plot will look like a cloud of data points with no visible alignment in any direction.
+
+In sum, a set of p predictors will have p eigenvalues, one for each dimension of the data. We can look at the largest eigenvalue and compare it to the smallest eigenvalue. If the difference is small, then multicollinearity is low. In contrast, if this difference is large, it means that there are obvious directions in which the data align, thus providing evidence of multicollinearity.
+
+The **CI** is a simple statistic, computed as the **square root** of the **ratio of the largest to the smallest eigenvalue**. Based on numerous empirical studies, the rules of thumb about the CI are:
+
+`CI < 30` -\> Multicollinearity is **not a concern** `30 < CI < 50` -\> Multicollinearity is a concern, but is **somewhat tolerable** `50 < CI` -\> Multicollinearity is **severe** and **must be addressed**
+
+In the examples below I use the `ols_eigen_cindex()` function in the `{olsrr}` package to compute the **CI** using the **Boston** housing data set in the `{MASS}` package. But there are other packages like `{klaR}`, `{car}` and `{perturb}` with similar diagnostic tools.
+
+```{r}
+#| message: false
+
+library(olsrr) # Tools for OLS regressions
+library(MASS) # Contains the Boston housing market data set
+```
+
+Let's first fit the full model:
+
+```{r}
+lm.fit <- lm(medv ~ ., data = Boston)
+summary(lm.fit)
+```
+
+Now let's compute the CI:
+
+```{r}
+coll <- ols_eigen_cindex(lm.fit)
+coll[ , 1:2] # Eigenvalues are in column 1 and CI in column 2
+```
+
+**Technical Note:** There seems to be a glitch in R Studio's Visual mode in that it displays 10 rows at a time and when you click 2 or Next to see the rest of the display nothing shows. This appears to be working correctly in Source mode. So, if you need to see more than 10 rows, you have a few options and workarounds:
+
+(1) Click on the "Show in New Window" icon on the top-right of the chunk display to open a zoom window with the results.
+
+(2) Run your code chunk in Source mode.
+
+(3) Run the display command in the R console. You can go to the Console and press the up arrow key, which will bring up previously executed commands. Or you can just copy/paste the command to the Console. The Console will display all rows.
+
+(4) Show the few last 6 values with the `tail()` function.
+
+```{r}
+tail(coll[ , 1:2])
+```
+
+(4) With the CI object, we are only interested in the last value of `coll` which is the actual CI. To display the only last value enter:
+
+```{r}
+coll[nrow(coll), 1:2] 
+```
+
+As I discussed earlier in class, if the eigenvalues change substantially, it is an indication that multicollinearity is present. The output in the example above shows all 14 eigenvalues, from largest to smallest. For example, the CI for the second eigenvalue is the `sqrt(10.09 / 1.59) = 2.51`, which is OK. But we don't need to evaluate all eigenvalues relative to each other, but only need to **focus on the largest CI**, which is the CI for the entire predictor set in the model, which is the square root of the ratio of the largest eigenvalue to the lowest, or `sqrt(10.09 / 0.0013) = 87.32`. This value is above 50, so we need to make some corrections. Also note that the function above computes the CI on the correlation, rather than the covariance matrix, which is equivalent to running the CI on a standardized data set with `scale = T` and `center = F`.
+
+In Chapter 7 I will discuss a few methods to address dimensionality issues like multicollinearity. For now, let's see if we can address this multicollinearity issue by removing non-significant predictors. Before you try other modeling approaches, it is a good practice to explore adding and removing predictor, which is at the heart of most **variable selection** methods.
+
+Let's try a reduced model, by removing a few non-significant predictors:
+
+```{r}
+lm.fit.red <- lm(medv ~ crim + zn + chas + rm + dis + 
+                        rad + tax + ptratio + black + lstat,
+                        data = Boston)
+summary(lm.fit.red)
+```
+
+Let's look at the CI
+
+```{r}
+coll.red <- ols_eigen_cindex(lm.fit.red)
+coll.red[nrow(coll.red), 1:2]
+```
+
+**Conclusion:** The reduced model did not totally solve the multicollinearity since the CI = 64.02, which is greater than 50, so the multicollinearity condition is severe. Note that the predictor **nox** was significant in the full model, but it became non-significant when I removed the other non-significant predictors. The fact that **nox** lost its significance when I removed a few predictor is futher evidence multicollinearity is a concern. So, I removed **nox** too. Now, let's find out which predictors contribute the most to multi-collinearity by examining the VIF's.
+
+## Variance Inflation Factors (VIFs) and Tolerance
+
+**VIFs** and **Tolerance** help analyze each variable's individual contribution to multicollinearity. There is one VIF and Tolerance value for each predictor. A predictor's VIF measures how much is the standard error of its coefficient, compared to the standard error of the coefficient for the same variable, if it were modeled as a single-predictor model. It also measures how much of the variance of the predictor can be explained by the remaining predictors. The concept of Tolerance helps explain this. `Tolerance(i) = 1 - Ri^2`, where `Ri^2` is the R-Squared of a regression with predictor i as an outcome and all other variables as predictors. In other words, it is the percent of the **variance** of predictor i that is **explained** by the other predictors.
+
+Conversely, **Tolerance** measures the percent of the variance of predictor i that is **not** accounted by the other predictors. The **VIF** of predictor i is simply the inverse of Tolerance or `VIFi = 1/ Tolerance(i) = 1 / (1 - Ri^2)`. Therefore, if `Ri^2 = 0` (no correlation, perfectly independent) then `Tolerance(i) = 1` and `VIFi = 1` (i.e., the coefficient of predictor i is not inflated at all). At the other extreme, `Ri^2 = 1` (i.e., perfectly correlated, mathematically) will yield `Tolerance(i) = 0` and `VIFi = infinite`, with predictor i's coefficient's `standard error = infinite`, and a model with no solution. A `Ri^2 = 0.8` and `0.9` translate to `Tolerance(i) = 0.2` and `0.1` and `VIFi = 5` and `10,` respectively. When examining VIF's, the typical rule of thumb thresholds are:
+
+-   `VIF < 5` (`Tolerance > 0.2`) - No concern, little or **no contribution to multicollinearity**
+-   `5 < VIF < 10` (`0.2 > Tolerance > 0.1`) - Some concern, but **tolerable**
+-   `VIF > 10` (`Tolerance < 0.1`) - The variable **contributes** significantly to **multicollinearity**
+
+To test VIF's, we can use the `vif()` function in the `{car}` (Companion to Applied Regression) package or the `ols_vif_tol()` function in the `{olsrr}` package. They are both equally good at reporting VIF's but the second function also reports the tolerance for each variable.
+
+```{r}
+ols_vif_tol(lm.fit) # Full model
+ols_vif_tol(lm.fit.red) # Reduced model
+```
+
+Interestingly, the CI is severe in both models, but none of the VIF's are greater than 10 in either model. This suggests strongly that the collinearity is probably between one or two predictors and the constant. This issue can be resolved by centering all the variables, including the outcome, in addition to scaling, and fitting the model this way. Generally, if the CI is severe, but the VIF's are not, there is less of a concern because none of the predictor coefficients' standard errors are severely inflated.
+
+**Technical Note:** You don't need to do this, but if you wish to inspect the `Ri^2` alongside the Tolerance and VIFs, say for lm.fit, you can do it this way:
+
+```{r}
+vi <- ols_vif_tol(lm.fit)
+data.frame("Variable" = vi[,1],
+           "Ri-Squared" = 1-vi[,2],
+           "Tolerance" = vi[,2],
+           "VIF" = vi[,3])
+```
+
+One final note is that the function `ols_coll_diag()` of the **{olsrr}** package will run the CI and VIF test in one pass. So, if you are interested in both statistics together, you can use that instead.
+
+# 2. Variable Selection
+
+We explore two approaches to select predictors for a model with statistical methods. As discussed in the main chapter, these methods only work when the models are nested. If the model specifications are not nested (i.e., they involve different predictors), if the models are of different types, or if they are not OLS or GLM models, these methods don't work and you will need to use **cross-validation** to select the best models, which is discussed in depth in Chapter 6. In this section, I discuss two approaches to variable selection: (1) **Subset Selection**, which are applicable when you have a finite number of nested models and you want to test which one has the strongest explanatory power; and (2) **Step Methods**, which are useful when you have many predictors and no pre-defined idea of how to select the most appropriate ones.
+
+**Technical Note -- Bias vs. Variance:** I discuss this in more depth in Chapter 6, but this is one of the most fundamental trade offs in predictive modeling and it is important to understand it well. **Bias** means that the effects of one or more predictors deviates from the actual effects. This can happen due to a number of reasons, but one frequent cause is when we omit one or more predictors that should have been in the model, particularly when they have some correlation with one or more of the retained predictors. For example, if I'm trying to predict the mileage performance of a vehicle and I include vehicle weight as a predictor, but omit including vehicle power, then the effect of vehicle weight may be biased because the actual effect may be due to vehicle power, more than vehicle weight. Omitting vehicle power, will cause the effect of vehicle weight to pick up some of the effect of vehicle power, which will bias the effect of vehicle weight. **Variance** means that if we remove a few observations or if we get new data, the observed effect will vary substantially, thus making the model correct on average (i.e., not biased) but unstable and perhaps unreliable. Modeling is about striking the **optimal balance** of bias and variance. In general, smaller and less complex models tend to have higher bias and smaller variance. As we add predictors and complexity in a model, the bias gets reduced, but the variance increases. Somewhere in between, there is an optimal model. I discuss this in more depth in Chapter 6.
+
+## Subset Selection
+
+The most effective way to compare the difference in explanatory power of two or more nested models is with an ANOVA F-Test. Smaller models are more biased, but large models can have more variande due to dimensionality, particularly if the multicollinearity condition is severe. So, this is a balancing act. The best approach is to select the best predictors based on business knowledge and then test various subsets. When comparing two models, the larger model **always** has more explanatory power than the smaller model because we have added explanatory predictors to the model. But if the increase in explanatory power is not significant, then the added complexity of the larger model is undesirable, and the smaller model is preferred. But if the difference is significant, we would select the larger model. Naturally, after a model has been selected, it is important to test for multicollinearity. Let's use the baseball data to illustrate these concepts and fit three models: reduced, large and full.
+
+Reduced Model, 3 Predictors:
+
+```{r}
+library(ISLR) # Contains the Hitters baseball player salary data set
+Hitters <- na.omit(Hitters) # Let's remove missing values
+lm.reduced <- lm(Salary ~ AtBat + Hits + Walks,
+                 data = Hitters)
+summary(lm.reduced) # Take a look
+```
+
+Large Model, 5 Predictors:
+
+```{r}
+lm.large <- lm(Salary ~ AtBat + Hits + Walks + Division + PutOuts, # 5 predictors
+                        data = Hitters)
+summary(lm.large) # Take a look
+```
+
+Full Model, 6 predictors
+
+```{r}
+lm.full <- lm(Salary ~ AtBat + Hits + Walks + Division + PutOuts + Errors, 
+                       data = Hitters)
+summary(lm.full) # Take a look
+```
+
+Now, let's use the `anova()` function to compare the models with **F-Test**. You can test these models in any order, but the convention is to go from smaller to larger model in the `anova()` function.
+
+```{r}
+anova(lm.reduced, lm.large, lm.full) 
+```
+
+The ANOVA output above compares 3 models. But the comparisons are pairwise. That is, there are only 2 comparisons. The first line simply shows the degrees of freedom and residual sum of squares of the first model. Line 2 has the first comparison between **lm.reduced** and **lm.large**. The F-statistic in this comparison is 7.88, which translates to a significant p-value = 0.00047. This means that the large model has more explanatory power than the reduced model and this difference is significant. Line 3 has the second comparison between **lm.large** and **lm.full**. The F-statistic is quite small at 1.674 and the p-value = 0.196 is not significant. It is **very important** to note that the full model still has **more explanatory power** than the large model because it has more predictors, but the difference is **not significant**, so we retain the simpler large model. That is, the added size and complexity of the full model is not beneficial, statistically speaking.
+
+One important thing to note is that if the `anova()` test is significant, the predictors we added will also be significant. Conversely, if the `anova()` test is not significant, the added predictors will not be significant either. This property is the foundation for the Step methods, which I discuss next.
+
+## Step Methods
+
+Step methods are excellent for exploration when you don't have pre-selected subsets you would like to test. It is important to note that Step methods are no replacement for sound predictor selection from business domain familiarity, but they are very useful when the number of candidate predictors is quite large. For example, if you have 20 candidate predictors, there are `2^20 = 1,048,576` possible models, which is practically unfeasible to fully compare. For this purpose, we use the convenient `step()` function, which is included in the `{stats}` package that loads by default when you star R, which works with both `lm()` (OLS) and `glm()` (GLM) models. Let's illustrate its use with the **Hitters** baseball player data contained in the `{ISLR}` package.
+
+There are three types of **Step** variable selection methods: **forward**, **backward** and **stepwise** (i.e., both). In all of three methods, there is a **lower bound** and an **upper bound** model. The Step method will add and remove predictors in between the lower and upper bound models. The lower bound model is the minimum and thus the mandatory set of predictors to include in the model. I often use the Null model (i.e., no predictors) for the lower bound, but if there are a few predictors that you must include in the model, you can set the lower bound to some Small model that includes those predictors only. For the upper bound, you can use the Full model that contains all the candidate predictors you identified. Let's start by specifying the lower and upper bound models
+
+```{r}
+library(ISLR) # Contains the Hitters data set
+options(scipen = 4) # To minimize the display of scientific notation
+```
+
+**Lower bound model:**
+
+```{r}
+Hitters.null <- lm(Salary ~ 1, data = Hitters) # Null model with no predictors
+summary(Hitters.null) # Take a look
+```
+
+**Upper bound model:**
+
+```{r}
+Hitters.full <- lm(Salary ~., data = Hitters) # Full model with all predictors
+summary(Hitters.full) # Take a look
+```
+
+A solution with any of the Step methods will yield a model in between the lower and upper bound models. The `step()` function can be set to perform in a forward, backward and stepwise (both) directions for the variable selection between the two models.
+
+The inclusion and exclusion p-value thresholds are `p < 0.15` by default. This means that predictors will only be added to the model if they are significant at the `p < 0.15` level and will only be removed if their p-values are greater than `p > 0.15`. This default can be changed as needed with the parameter **k**. The default is `k = 2`, which is approximately equivalent to `p < 0.15`. If you want more predictors in the final model, increase the p-value threshold by using higher values of k. For example, `k = 2.7` yields approximately `p < 0.10`. If you want fewer predictors in the final model, lower the p-value to a more restrictive inclusion level, by reducing k. To find exactly how k relates to p-values, you can use the chi-square distribution function `qchisq()`:
+
+```{r}
+qchisq(0.01, 1, lower.tail = F) # the k value for p < 0.01 is 6.634
+qchisq(0.05, 1, lower.tail = F) # the k value for p < 0.05 is 3.841
+qchisq(0.10, 1, lower.tail = F) # the k value for p < 0.10 is 2.705
+qchisq(0.15, 1, lower.tail = F) # the k value for p < 0.15 is 2.072
+```
+
+Because Step methods are exploratory in nature, there is no particular reason to change the default k value, as you will be able to observe the significance level of each predictor included. Nevertheless, you can use p-values smaller than 0.15 or k values higher than 2 to obtain smaller models, or use larger p-values or smaller k values to obtain larger models.
+
+## Forward Selection
+
+In forward selection, the search starts with the lower bound model and the method adds predictors one at a time, starting with the most significant one and stopping when none of the predictors omitted from the model would have a **p \< 0.15** (or whatever threshold you used) if included in the model. The forward selection method **only adds variables**, one at a time, but does not remove any variables if they become non-significant.
+
+To run a forward step variable selection use the lower and upper bound models in the `scope =` parameter using the `list()` function (i.e., the scope is passed to the `step()` function as a list object). The first model entered in the `step()` function is the starting point in the variable selection process. Since we are using the forward method, the starting point must be the **Null** model because we will only be adding predictors. We also need to use the `direction = "forward"` parameter, which will cause the `step()` function to only add predictors. Finally, we need to include the `test = F` parameter, which will cause the `step()` function to evaluate the inclusion of predictors based on the significance p-value of the added predictor, which is equivalent to an F-test. Otherwise, the default comparison criteria is the AIC (Akaike's Information Criterion), which is a generic statistic of predictive accuracy. You should get similar results, but the F-test is more robust.
+
+```{r}
+Hitters.fwd <- step(Hitters.null, 
+                    scope = list(lower = Hitters.null, 
+                                 upper = Hitters.full),
+                    direction = "forward", 
+                    test = "F")
+summary(Hitters.fwd)
+```
+
+The `step()` outputs one model in each step, so that you can explore which variables entered the model when. In the first step of the output above you will notice two important things:
+
+First, the predictors are ordered from smallest to largest p-value. These p-values are NOT the p-values in the model because initially there are no predictors in the Null model. Rather, these p-values indicate what the respective p-values would be if the predictor is added to the model.
+
+Second, there is a `+` symbol next to each predictor. This is NOT a coefficient sign. Rather, it is a symbol that indicates that the predictor is a **candidate for inclusion** in the model, thus the `+`. Because the first step is the Null model, all predictors have a `+` symbol. Naturally, the first predictor in the output will be the first predictor to be added to the model, which in this case is **CRBI**, which will appear in the model output in the next step.
+
+In the second step, you will notice that CRBI is no longer listed. This is so because it is already added to the model, so it is no longer a candidate for inclusion. You can also see that the model formula listed at the top of the step output includes **CRBI** in the model. Following the same logic, **Hits** will be the next predictor to be added to the model, and so on. You will notice in the very last step, that there are no more predictors with a p-value \< 0.15, so no more predictors will be added to the model after this step and the process stops. The `summary()` function outputs the typical regression summary results.
+
+Let's illustrate what happens when we increase k to 3.841. As you can see in the output below (cut to save paper), there are fewer predictors included because the p-value threshold is now 0.05. Notice that the all the final predictors included have a significance level of p \< 0.05.
+
+```{r}
+Hitters.fwd.3.8 <- step(Hitters.null, 
+                        scope = list(lower = Hitters.null, 
+                                     upper = Hitters.full),
+                        direction = "forward", 
+                        test = "F", 
+                        k = 3.841)
+summary(Hitters.fwd.3.8)
+```
+
+## Backward Selection
+
+In backward selection, the search starts with the upper bound model and the method removes predictors one at a time, starting with the least significant one and stopping when none of the predictors included in the model have **p \> 0.15** (or whatever threshold you used). The backward selection method **only removes variables**, one at a time, but does not remove any variables if they become non-significant.
+
+Backward selection works just like forward selection, with the same lower and upper bound models, but this time the starting model must be the Full or upper bound model because we can only remove predictors. We also need to change the attribute to `direction = backward"`. This will cause the process to proceed in a backward fashion. Just like in the forward process, the default k value is 2, which is approximately equivalent to `p < 0.15`. This means that any predictor that is not significant at the `p < 0.15` level will be removed from the model. One more difference is that there is a `-` symbol next to each predictor, rather than `+`. This is so because predictors are **candidates for removal**, as there is no addition in backward step. The predictors are listed from least to most significance, so the first predictor to be removed is always the first one at the top.
+
+```{r}
+Hitters.back <- step(Hitters.full, 
+                     scope = list(lower = Hitters.null, 
+                                  upper = Hitters.full),
+                     direction = "backward", 
+                     test = "F")
+
+summary(Hitters.back)
+```
+
+## Stepwise Selection
+
+In stepwise selection, you can start with either the lower or upper bound model and go in either direction. Naturally, if you start with the lower bound model, your first step has to be forward. Similarly, if you start with the upper bound model, your first step has to be backwards. My recommendation is to start with the upper bound model because it is the least biased of all possible models, so it provides a good starting base. In this case the process will evaluate which variable to remove from the upper bound model, starting with the least significant one and stopping when none of the predictors included in the model have **p \> 0.15** (or whatever threshold you selected). The difference with the forward and backward selection methods is that predictors can be either added or removed from the model. Unless you change the default value of k, any predictor that is significant at the p \< 0.15 level will be added, and any that is not will be removed. Another difference in each step is that you may now see either a `+` or a `-`. As before, a `+` denotes that the predictor is not in the model and, therefore, it is a candidate for inclusion. Similarly, a `-` symbol denotes that the predictor is already in the model and, therefore, it is a candidate for removal.
+
+Two other important differences are:
+
+First, the **direction** attribute is set to `direction = "both"`, which will trigger the stepwise process of either adding or removing predictors; and
+
+Second, the starting models can be either the Null or the Full model, your choice. If you choose the Null model, your first step will be to add predictors to the Null model in a forward fashion, which is the only direction you can go because there are no predictors in the Null model yet. If you choose the Full model, your first step will be to remove predictors from the Full model in a backward fashion. Again, that's the only direction possible. But after the first step, predictors may either be added or removed in every step. Let's illustrate this method. Notice that we start with the Full model, so our first step is backward. You can try starting with the Null model on your own, but my preference is to always start with the Full and least biased model. So, all predictors have a `-` symbol at the beginning, but notice that there is a predictor with a `+` in the second step, indicating that the predictor has already been removed, but it is now a candidate to be added back to the model.
+
+```{r}
+Hitters.step <- step(Hitters.full, 
+                     scope = list(lower = Hitters.null, 
+                                upper = Hitters.full),
+                     direction = "both", 
+                     test = "F")
+summary(Hitters.step)
+```
+
+I'm not running the code below, but I show the commands to run the stepwise method using `p < 0.05` as the inclusion/removal threshold
+
+```{r}
+#| eval: false
+
+Hitters.step <- step(Hitters.full, 
+                     scope = list(lower = Hitters.null, 
+                                upper = Hitters.full),
+                     direction = "both", 
+                     test = "F",
+                     k = qchisq(0.05, 1, lower.tail = F)) # or jusr k = 3.841)
+summary(Hitters.step)
+```
+
+## Best Subset Selection
+
+I only discuss this method briefly, because the Step methods accomplish the same purpose and they are superior in my opinion. But it is a useful method to know. Best subset selection works similarly to the Step method, but there are no additions or removals in steps. Rather, the first step will try all possible 1-predictor models and select the best of all in terms of explanatory power. It will then fit all possible 2-predictor models, and so on. We use the `regsubsets()` function from the `{leaps}` package for this purpose. By default, `regsubsets()` stops when the model has 8 predictors, but you can change this with the `nvmax =` parameter. Let's illustrate this:
+
+```{r}
+library(leaps) # Contains the regsubsets() function
+regfit.full <- regsubsets(Salary ~ ., Hitters) 
+summary(regfit.full)
+```
+
+The \*\*"\*"\*\* in the output shows the predictors selected in each model. You can also view the R-Squared of each model with the `$rsq` attribute:
+
+```{r}
+summary(regfit.full)$rsq # View the R-square of each model
+```
+
+Let's change the number of predictors in the model up to 10
+
+```{r}
+regfit.full <- regsubsets(Salary ~ ., 
+                          data = Hitters, 
+                          nvmax = 10) 
+summary(regfit.full)
+```

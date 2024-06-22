@@ -1,0 +1,346 @@
+---
+title: "Appendix R6: Machine Learning (ML)"
+subtitle: "Cross-Validation (CV) Testing and Resampling"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+  pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+     
+fig-width: 10
+fig-height: 6
+
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples about machine learning, cross validation, testing and re-sampling. Machine learning is central to accuracy in predictive models. I discuss the key concept of cross-validation, which is about training models and then testing them with existing data. I also cover popular re-sampling methods to do cross-validation more thoroughly and systematically. These methods are used to test models, compare models, tune model parameters and fit complex models for deep learning, such as neural networks. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+---
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+# Overview
+
+In machine learning and cross-validation we do a lot of random sampling and re-sampling to train and test models. We train the models with a random train data sub-sample and we then evaluate the trained model using a random test data sub-sample. All random sampling is done through random number generators (like the random number tables in the back of statistic books). To draw a random sample you start at an arbitrary number in the table, called the **seed** and then draw random numbers in sequence, starting with the first random number starting at the seed location. To set the seed, we use the function `set.seed()`. The `set.seed()` then invokes a random number generator (RNG), which dictates the sequence of random numbers to use. There are more than one RNG methods in R and their differences are mainly related the various rounding methods used by the RNG. If you plan to work alone, this is of absolutely no consequence to you, as any RNG will generate random numbers. But if you plan to work with a team and you want to have comparable and repeatable results, it helps to set the same default RNG and random seed by everyone in the team. The RNG default can be established with the `RNGkind()` function as follows:
+
+```{r}
+RNGkind(sample.kind = "default") # To use the R default RNG
+```
+
+After doing this, you may want to set the random seed to any value before any random sampling, if you want to get repeatable results across samples. Do not set the seed if you want the random sample to change every time you run the script. In the example below I use a seed of 1, but it could be 10, 35, or any number you wish. I'm also setting the scientific penalty to 4, to minimize the display of small numbers in scientific notation.
+
+```{r}
+set.seed(1)
+options(scipen = 4) # Limit scientific notation
+```
+
+# Cross-Validation (CV) and Resampling Methods
+
+## Random Splitting Cross Validation (RSCV)
+
+For RSCV, we select the proportion of the data that we want to use for the train data sub-sample and then draw a random sample of that size from the data set. We then use the remaining observations for the test data sub-sample. Let's use the **Auto** data set in the **{ISLR}** package for this illustration and take a quick look at the first few observations.
+
+```{r}
+library(ISLR) # Contains the Auto data set
+head(Auto)
+```
+
+It is always a good idea to go to the R console and take a look at the documentation for the data set with `?Auto` and become familiarized with the variables. Try it on your own:
+
+```{r}
+#| eval: false
+
+?Auto
+```
+
+Now, let's start by counting the number of records in the **Auto** data set.
+
+```{r}
+nrow(Auto) # 392 observations in the data set
+```
+
+Suppose you want to train your model with 70% of the data and test it with the remaining 30%. We start by generating an "index" vector of random numbers named **train**, containing 70% of the 392 row numbers from the Auto data set `nrow(Auto)`. It is always a good idea to set the seed before sampling too.
+
+```{r}
+set.seed(10) # Any seed is fine
+
+train <- sample(392, 0.7 * 392)
+train[1:10] # Check a few of the numbers in the train index vector
+```
+
+It is important to note that **train** is a vector containing numbers. It is not the actual train data subset, but the row number we will use to extract the train data subset.
+
+The method used above to generate the train vector is not very good, programmatically. These commands will not work well if and when the data changes. In software programming, it is best to store all the main parameters in variables, grammatically, as illustrated here:
+
+First, store the training sub-sample size in a variable, for example **tr.size**. This will make it easier to change later:
+
+```{r}
+tr.size <- 0.7
+```
+
+Then, generate the train index using `nrow()`, which will count the number of rows in the data set, so it will always work when the data set changes:
+
+```{r}
+set.seed(10)
+train <- sample(nrow(Auto), 
+                tr.size * nrow(Auto))
+train[1:10] # Take a look at a few values
+```
+
+Count the number of values contained in the train index vector just to confirm we are doing things correctly:
+
+```{r}
+length(train) # 274 or 70% of 392
+```
+
+You can change **tr.size** to 0.6, 0.8 or any other size to easily change the size of the train sub-sample.
+
+We can now **train** (i.e., fit) the model with the train sub-sample. We can do this in 3 (or more) different ways:
+
+1.  With the `subset = index` vector parameter.
+
+```{r}
+lm.fit.train <- lm(mpg ~ horsepower, 
+                   data = Auto, 
+                   subset = train)
+```
+
+2.  By indexing the Auto data set to select just the train observations
+
+```{r}
+lm.fit.train <- lm(mpg ~ horsepower, 
+                   data = Auto[train, ])
+```
+
+3.  Or with **my preferred method**, which is to create separate train and test subsets, so that you have the subsets ready to use any time, and then train the model:
+
+```{r}
+Auto.train <- Auto[train, ]
+Auto.test <- Auto[-train, ]
+
+lm.fit.train <- lm(mpg ~ horsepower, 
+                   data = Auto.train)
+```
+
+Note that we use the train index and then a comma and a blank. This is so because Auto.train is a data frame containing rows and columns. `Auto[train, ]` selects a subset that contains all the rows matching the values in the **train** index vector, and the blank after the comma indicates that we will extract all columns. If you don't need all columns, you can always select columns with the appropriate column index.
+
+Now that we have trained the model with the train subset, we are ready to use it to CV test it. Note that I don't output the `summary()` of the model, because we will not use the trained model to interpret results in this exercise. But you could if you wanted to. We will do interpretations later with the full data set, rather than the smaller train subset. For now, we are just testing the predictive accuracy of the model.
+
+Let's now compute the **CV Test MSE** (i.e., deviance) of the model using the **trained model** to predict the outcomes using the **test** subset to test the model's accuracy. We start with the **Auto.test\$mpg** vector, which has the actual outcome values in the test subset. We then subtract the predictions, using **lm.fit.train** as the model with the data in **Auto.test**. This will yield the vector of residuals from our test predictions. We then square the residuals and take the mean:
+
+```{r}
+mse.test <- mean( (Auto.test$mpg - 
+                   predict(lm.fit.train, Auto.test) ) ^ 2) 
+mse.test # Check out the deviance
+```
+
+To recap, in the example above, we trained the model with the train subset. We then used the trained model to make predictions with the test subset. This is the **CV Test MSE**. Let's see what happens if we compute the error using the same data we used to train the model. You would never do this, but I do it here to illustrate a point. Let's call this error the **Train MSE** and display both errors side by side.
+
+```{r}
+mse.train <- mean( (Auto.train$mpg - 
+                    predict(lm.fit.train, Auto.train) ) ^ 2) 
+cbind("CV Test MSE" = mse.test, 
+      "Train MSE" = mse.train)
+```
+
+Notice that the CV Test MSE is larger than the Train MSE. Why is that? It is because when we calculate the model's error using the same data we used to train the model, the train error will generally under-estimate the CV test error. I say generally, but not always, because sometimes this is not the case due to random sampling. This is the reason why we do re-sampling because the train error will always underestimate the test (i.e., real) error over multiple re-samples. Let's take a look at RSCV with re-sampling.
+
+## Random Splitting CV with Re-Sampling
+
+You can do a few re-samples and average the Test MSE results to avoid issues with lucky or unlucky random samples. The computational power of R makes this relatively easy. Let's re-sample 10 times with a random seed each time with a loop (you can just replace 10 with any larger number for more re-samples):
+
+Store the desired number of re-samples, 10 in this case, in a variable. Also, store the proportion of train observations in a variable, to make it easier to change as needed.
+
+```{r}
+res <- 10
+tr.size <- 0.7
+```
+
+Initialize a vector with 10 elements with 0's, which will hold the test errors in each loop
+
+```{r}
+mse.test <- replicate(res, 0) # res is 10
+```
+
+Then process this loop "res" times and print **mse.test**.
+
+```{r}
+for (i in 1:res) 
+{ 
+  sd <- sample(1:1000, 1) # Draw a random seed between 1 and 1000
+  set.seed(sd) # Set the seed to this random value
+
+  # Draw the train and test sub-samples
+  train <- sample(nrow(Auto), tr.size * nrow(Auto))
+  Auto.train <- Auto[train, ] # Train subset
+  Auto.test <- Auto[-train, ] # Test subset
+  
+  # Train the model
+  lm.fit.train <- lm(mpg ~ horsepower, 
+                     data = Auto.train)
+  
+  # Compute and store the Test MSE for the i-th element of mse.test
+  mse.test[i] <- mean((Auto.test$mpg - 
+                       predict(lm.fit.train, Auto.test))^2)
+  print(mse.test, digits = 4) # Show all 10 MSE's calculated in the loop
+}
+```
+
+Then compute the average Test MSE across the 10 re-samples:
+
+```{r}
+avg.mse.test <- round(mean(mse.test), 
+                      digits = 3)
+paste("Mean CV Test over", res, "resamples = ", avg.mse.test)
+```
+
+## Leave-One-Out Cross-Validation (LOOCV)
+
+The advantage of RSCV is that it is relatively easy to script and can be used for just about any predictive modeling method. The script above can be easily customized as needed. But LOOCV can be very easily applied with **GLM** models using the `cv.glm()` function. Many ML methods like random forest trees and principal components regression contain functionality to perform LOOCV and KFCV testing. In this section, I illustrate the use of the `cv.glm()` function from the **{boot}** package, which works with `glm()` models.
+
+**Technical Note:** the `cv.glm()` function only works with `glm()` objects. So, if you have an `lm()` object for an OLS model, you need to fit it with `glm()`, which will yield identical results to `lm()`, and then use the `cv.glm()` to do cross-validation.
+
+```{r}
+library(boot) # Contains the cv.glm() function
+library(ISLR) # Contains the Auto data set
+glm.fit <- glm(mpg ~ horsepower + weight + year, 
+               data = Auto)
+cv.loo <- cv.glm(Auto, glm.fit) 
+```
+
+The resulting `cv.glm()` object stores the CV Test MSE results in a list named **delta**. The **delta** list contains 2 values, which are almost identical. The first delta value is the actual raw CV Test MSE. The second one is some bias-corrected value, which we don't need to pay attention to for our purposes. Let's just focus on the raw CV test value, which is `[1]`:
+
+```{r}
+test.mse.loo <- round(cv.loo$delta[1], digits = 3) # Round and save it
+paste("LOOCV Test MSE = ", test.mse.loo)
+```
+
+## K-Fold Cross-Validation (KFCV)
+
+KFCV is computed in the exact same way as LOOCV, except that you need to include a parameter **K** to set the number of folds. For example, for 10FCV, you need to use `K = 10`. In essence, the LOOCV method is a special case of KFCV in which K = N, where N is the number of observations in the data. In fact, `K = N` is the default value in the `cv.glm()` function, which is why I did not include a K parameter in the LOOCV calculations.
+
+```{r}
+cv.10K <- cv.glm(Auto, glm.fit, K = 10)
+test.mse.10K <- round(cv.10K$delta[1], 
+                      digits = 3) # Round and save it
+paste("10FCV Test MSE = ", test.mse.10K)
+```
+
+Let's look at LOOCV and 10KCV together and notice that the results are almost identical, except for rounding.
+
+```{r}
+c("MSE LOOCV" = test.mse.loo, 
+  "MSE 10FCV" = test.mse.10K)
+```
+
+## Bootstrap CV
+
+Bootstrapping is used for many statistical methods and it is based on re-sampling the data with replacement many times. For CV testing, the bootstrap samples are used to train the model and the observations left out are used for CV testing. There are many R packages to do apply bootstrapping in various statistical computations, like **{boot}**. But for CV testing, the **{caret}** package provides a simple way to apply it. In fact, bootstrap is the default method for CV testing in this package. I discuss the **{caret}** package next.
+
+# The {caret} Package
+
+The `{caret}` package is a companion to the book *Applied Predictive Modeling* book by Kuhn and Johnson (see: <http://appliedpredictivemodeling.com/>)
+
+It contains several useful functions for estimating and testing machine learning models. The `train()` function is particularly useful to do CV testing with various models and methods. You can easily test various models using multiple CV re-sampling method by changing a few parameters. The documentation for this package can be found at: <http://topepo.github.io/caret/index.html>.
+
+You can use many modeling methods with the **{caret}** package. See: <http://topepo.github.io/caret/train-models-by-tag.html>.
+
+Let's illustrate how to use of the `train()` function of the **{caret}** package:
+
+```{r}
+#| warning: false
+ 
+library(caret) # Load the package
+library(ISLR) # Contains the Auto data set
+set.seed(1) # Set the seed
+```
+
+Let's start by fitting and testing an OLS model with the `lm()` function. The `{caret}` package does not have its own functions to train models. Instead, it uses the `train()` function in which the `method =` parameter invokes the actual modeling method, `lm()` in this case. This is an excellent feature because the `{caret}` package will yield the exact same results than the `lm()` function, or which ever model function you use, because it will call the actual `lm()` function to fit the model. The default CV testing is done with **bootstrap** with **25 re-samples**.
+
+```{r}
+lm.fit.caret <- train(mpg ~ horsepower + weight + year, 
+                      data = Auto, 
+                      method = "lm")
+lm.fit.caret # Reports RMSE and R squared
+```
+
+You can print specific results by invoking the `train()` object properties:
+
+```{r}
+cat("RMSE =", lm.fit.caret$results$RMSE, "\n") 
+cat("MSE =", lm.fit.caret$results$RMSE ^ 2, "\n")
+```
+
+You can also display the `summary()` results which are the same as with `lm()`.
+
+```{r}
+summary(lm.fit.caret)
+```
+
+Here are more results:
+
+```{r}
+lm.fit.caret$resample # Display fit stats for each sample
+lm.fit.caret$results # Display all bootstrap results
+```
+
+## Other {caret} Parameters {caret=""}
+
+Also, the `trControl` parameter and the `trainControl()` function invoked within the `train()` function, allows you to use other re-sampling methods, such as **boot** (default), **LOOCV**, **CV**, etc.). For example, to change the default number of **bootstrap sample**s from **25** to, for example **100**:
+
+```{r}
+lm.fit.caret.100 <- train(mpg ~ horsepower + weight + year, 
+                          data = Auto, 
+                          method = "lm", 
+                          trControl = trainControl(number = 100))
+lm.fit.caret.100$results # Display bootstrap results for 100 samples
+```
+
+To change the CV method to **10FCV** change the `method =` parameter to `"cv"`:
+
+```{r}
+lm.fit.caret.10FCV <- train(mpg ~ horsepower + weight, 
+                            data = Auto, 
+                            method = "lm", 
+                            trControl = trainControl(method = "cv", 
+                                                     number = 10))
+lm.fit.caret.10FCV # Check the RMSE
+```
+
+To change the CV method to **LOOFCV** change the `method =` parameter to `"loocv"`:
+
+```{r}
+lm.fit.caret.LOOCV <- train(mpg ~ horsepower + weight, 
+                            data = Auto, 
+                            method="lm", 
+                            trControl = trainControl(method = "loocv"))
+lm.fit.caret.LOOCV # Check the RMSE
+```
+
+Now let's quickly change the model method to a **Random Forest** tree model with 10FCV using the `method = "rf"` parameter:
+
+```{r}
+rf.fit.caret.10FCV <- train(mpg ~ horsepower + weight + year, 
+                            data = Auto, 
+                            method = "rf", 
+                            trControl = trainControl(method = "cv", 
+                                                     number = 10))
+rf.fit.caret.10FCV # Check the RMSE
+```
+
+Let's fit a **Neural Network** with the `method = "neuralnet"` parameter:
+
+```{r}
+nn.fit <- train(mpg ~ horsepower + weight, 
+                data = Auto, 
+                method = "neuralnet")
+nn.fit # Check the RMSE
+```

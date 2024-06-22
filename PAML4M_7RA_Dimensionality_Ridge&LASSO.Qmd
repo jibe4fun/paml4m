@@ -1,0 +1,467 @@
+---
+title: "Appendix R7A: Dimensionality - Regularization"
+subtitle: "Penalized Models: Ridge and LASSO Regressions"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+     
+fig-width: 10
+fig-height: 6
+
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples about predictive modeling methods based on regularization, also known as shrinkage or penalized models. I will describe three methods -- Ridge Regression and LASSO, and Elastic Nets, which is a blend of Ridge and LASSO. These models aim to correct issues of dimensionality, such as severe multicollinearity. An important thing to note is that these methods shrink the regression coefficients intentionally to bias the predictor coefficients to improve the model variance. Naturally, the more we shrink the coefficients, the more we bias the model. Cross-validation will help us identify the optimal amount of shrinkage in when the model variance is minimized. It is important to note that the more we shrink the model coefficients, the less useful the model becomes for interpretation and explainability. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+---
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+**Technical Note:** All procedures involving machine learning and cross-validation are based on random sampling. Therefore, results may change when you run the analysis multiple times, depending on the kind of random number generator `RNGkind()` and the seed selected. The results in this script may not match the outputs in the main text of the book. Follow the chapter and this script appendix independently. Let's first set the random number generator default
+
+```{r}
+RNGkind(sample.kind = "default") # To use the R default RNG
+```
+
+# Dimensionality
+
+The issue of dimensionality is often referred to as **curse of dimensionality**. As you add more predictors and complexity to a model specification, it will generally fit the data better and most fit statistics will improve. In some cases, the fit may even be perfect. For example, if you grow a tree until it has the same number of branches as you have data points, the fit will be perfect because the model will touch every single data point. Similarly, if you fit a smoothing spline model, you can set your parameters so that the resulting regression model with a jagged line that touches every single point in the data set. However, such models are **over-fitting** and tend to not perform well with new data due to extreme variance, making fit statistics like R-squared, MSE and 2LL to improve **artificially**, giving the false impression that the model is good. However, if we CV test the model with different data, over-fitted models will have higher variance, and these predictions will not be as accurate.
+
+Over-fitting and multicollinearity are two of the many problems of dimensionality. The methods presented in this section are ideally suited to address dimensionality issues. There are many types of methods that address and correct for dimensionality. The 2 types of methods we will cover in this class are: (1) Regularization or Shrinkage (covered in this script); and (2) Dimension Reduction (covered in the Appendix R7B).
+
+# Regularization (i.e., Shrinkage or Penalized) Methods.
+
+Regularized, shrinkage and penalized models are the same thing and they involve artifically shrinking regression coefficients to reduce the effect of multicollinearity on the model's variance. Generally speaking, Ridge and LASSO work best when the number of predictors is quite large (even thousands) and the data suffers from severe multicollinearity.
+
+When coefficients are shrunk, the model's **bias** increases. On the upside, shrinkage reduces the model variance. The amount of shrinkage is controlled by a **shrinkage factor** lambda, which is a **tuning parameter**, meaning that you can shrink coefficients to various degrees and then select the shrinkage that yields the best cross-validation testing results (i.e., best predictive accuracy and optimal model variance). In this section I describe two popular regularization approaches: **Ridge** and **LASSO** (Least Absolute Shrinkage and Selection Operator) regressions. They both aim to shrink the coefficients, such that the coefficients of the less important variables become very small and, therefore, have little influence on predictions. The magnitude of the shrinkage can be controlled with the shinkage factor "Lambda", such that when `Lambda = 0`, both Ridge and LASSO results are identical to OLS or GLM model, that is, a regression model with no shrinkage. In contrast, when `Lambda = infinite`, both methods also yield the same results as the **Null** model because all regression coefficients are squashed to 0. The difference between Ridge and LASSO is that as Lambda grows, Ridge coefficients become smaller, but not 0, except when Lambda is infinite. In contrast, LASSO shrinks coefficients to 0 along the way, dropping their respective predictors from the model as Lambda grows.
+
+Because Lambda causes the coefficients to shrink, the larger the Lambda, the more **biased** the regression coefficients are compared to OLS or GLM coefficients. Generally, as Lambda grows, Ridge and LASSO improve the model's predictive accuracy up to a point, after which the predictive accuracy declines. An optimal model is one with a Lambda value that minimizes the model's CV test deviance. However, if the analytics goal is interpretability, it would OK to select a model with a smaller Lambda that has an acceptable CV test deviance.
+
+How do you know if your model is biased? One way to quickly inspect for bias is to put the regression coefficients for various shrinkage factors in columns, from no shrinkage to extremely large shrinkage, and observe how the coefficients change from column to column. If a coefficient is relatively constant and stable, then it has little bias. If a coefficient fluctuates widely and even changes signs, then it has a lot of bias. Overall, the closer the coefficients are in value to the OLS coefficients, the less biased the model is and, consequently the more interpretable.
+
+**IMPORTANT:** with shrinkage methods like Ridge regression, p-values no longer relevant, because all coefficients are retained in the model, although shrunk (i.e., biased). The actual magnitude of the coefficients tells you how important the corresponding variable is in the prediction. Similarly, the R-squared values are not reported, but for quantitative outcome models, you can use the deviance ratio illustrated above as an R squared.
+
+**Technical Note:** One way to get coefficients in Ridge or LASSO regression representing variable importance is to standardize all variables. Ridge and LASSO do this automatically, but then standardization the coefficients for the output. But if you standardize the variables yourself, you will get standardized coefficients, which are unaffected by variable scales. Consequently, predictors with larger standardized coefficients will have more weight on the predictions, thus providing a measure of variable importance.
+
+# Ridge Regression
+
+Let's run a Ridge regression with several Lambdas and find the best Lambda that minimizes the 10FCV MSE. We will be using the **glmnet()** function from the **{glmnet}** R package. Let's start by loading the necessary packages.
+
+```{r}
+#| warning: false
+
+library(glmnet)
+library(ISLR) # Contains the Hitters baseball player salary data set
+# This data set has several missing values, let's omit them
+Hitters <- na.omit(Hitters) 
+options(scipen = 4) # Minimize use of scientific notation
+```
+
+**Technical Note:** the **glmnet()** function has a different syntax than other functions like `lm()` and `glm()`. It requires defining an **X matrix** (of the predictors) and a **Y** vector (of the response values). That is, rather than using the familiar `y ~ x1 + x2 etc.` formula syntax, we will use the `(X, Y, etc)` syntax, where X is the model matrix of predictors and Y is the vector of outcomes. We will use the `model.matrix()` function in the `{stats}` package to create the model's predictor matrix. The `model.matrix()` function will also convert all categorical variables to their respective dummy variables.
+
+\*\* Technical Note:\*\* Notice below that I added `[,-1]` at the end of the `model.matrix()` function. This is necessary because the `model.matrix()` function will include a column full of 1's as the first column, which represents the intercept. But Ridge also renders an intercept. So, if you don't remove this first column of 1's, the Ridge model will have 2 intercepts and the coefficients will be slightly off.
+
+Let's start by creating the **x** predictor matrix and the **y** outcome vector:
+
+```{r}
+x <- model.matrix(Salary ~ ., data = Hitters)[ ,-1]
+x[1:10, 1:10] # Take a look at the first 10 rows and columns
+
+y <- Hitters$Salary # y vector with just the outcome variable
+y[1:10] # Take a look at the first 10 values
+```
+
+The `glmnet()` function is used to fit, Ridge, LASSO and Elastic Net models. It uses the parameter `alpha =` to indicate which model to fit, with a value of **0** for a **Ridge Regression**, **1** for **LASSO** and any value between **0-1** for Elastic Net. `alpha` is the proportional weight given to **LASSO** and (`1 - alpha`) is the proportional weight given to **Ridge**.
+
+**Technical Note:** By defalut, `glmnet()` estimates models with 100 different Lambda values, ranging from very large to very small (in descending order). You can estimate less or more Lambda values with the `nlambda =` parameter)
+
+```{r}
+options(scipen = 999) # Disable scientific notation
+ridge.mod <- glmnet(x, y, 
+                    alpha = 0) 
+```
+
+**Note About GLM Models:** To fit a Ridge regression with a binomial outcome (e.g., **Logistic**), use the parameter `family = “binomial”`. For **count** outcomes, use the parameter `family = “poisson”`. The interpretation of the resulting coefficients is the same as with Logistic and Count data models.
+
+Let's take a quick look at the first 10 Lambdas and their **Deviance Ratios** (i.e., proportion of Null deviance explained, like an R Squared), rounded to decimals). The Lambdas are sorted from largest (close to the Null model) to smallest (close to OLS). Naturally, the explained variance of the model (relative to the Null model) increases as lambda decreases because we are getting closer to the OLS model. But this will change once we CV test the model.
+
+```{r}
+round(cbind("Lambda" = ridge.mod$lambda, 
+            "Deviance Ratio" = ridge.mod$dev.ratio)[1:10, ], 
+      digits = 4) 
+```
+
+**Note:** Ridge regression standardizes the coefficients because the scale of the variables can affect the proportion of shrinkage across coefficients. However, Ridge regression can be run without standardizing coefficients simply by specifying the parameter `standardize = FALSE`. The default is TRUE.
+
+## L2 Norm
+
+**L2 Norm** is a measure of the overall shrinkage of the model. It is the square root of the sum of the squared coefficients in a Ridge regression. As Lambda increases, all coefficients shrink, so the L2 Norm decreases too. `L2 Norm = square root of the sum of the model's squared coefficients`. L2 Norm is mostly used as a preliminary visual analysis of the shrinkage patter not the model. For example, notice in the graph below how the coefficients shrink. Some get pretty small fairly quickly, but no coefficient becomes 0 until Lambda is infinitely large. Also notice how some coefficients change in size more than others and some even change signs, providing some evidence of bias. Also, notice the repeated value of 19 at the top of the graph. This means that the model has 19 predictors at every shrinkage level. As we will see shortly, this will not be the case with LASSO.
+
+```{r}
+# Note: the x axis is Labeled L1 Norm, but the prefix L1 is generally used for LASSO.
+plot(ridge.mod, label = T)
+```
+
+To compute the **L2 Norm** for any lambda, for example 50 (notice we remove the first coefficient, which is the intercept):
+
+```{r}
+l2.norm.50 <- sqrt(sum(coef(ridge.mod)[-1, 50] ^ 2)) 
+l2.norm.50
+```
+
+## Optimal Shrinkage with CV Testing
+
+Let's find the best Lambda shrinkage value that minimizes the CV test MSE using the `cv.glmnet()` in the `{glmnet}` R package. The syntax in the `cv.glmnet()` function is the same as for the `glmnet()` function, except that it has an additional parameters, `nfolds =` to change the CV test default from **10FCV** to other number of folds.
+
+```{r}
+set.seed(1) # Arbitrary,to get repeatable results
+cv.10Fold <- cv.glmnet(x, y, 
+                       alpha = 0) # 10FCV is the default
+
+# First 10 Lambdas (remove the index to print all lambdas)
+cbind("Lambda" = cv.10Fold$lambda, 
+      "10FCV MSE" = cv.10Fold$cvm)[1:10,]
+```
+
+Let's plot all the Lambdas against their 10FCV MSE
+
+```{r}
+plot(cv.10Fold)
+```
+
+The plot suggests that the MSE declines as the shrinkage lambda decreases. There is no clearly visible minimum in the graph. But we can evaluate this more carefully, by exploring several small lambdas, say from 1 to 100.
+
+```{r}
+set.seed(1)
+cv.10Fold <- cv.glmnet(x, y, 
+                       alpha = 0, 
+                       lambda = seq(0, 100)) # 10FCV is the default
+plot(cv.10Fold)
+```
+
+The new plot shows some possible minimum value for the MSE around `log(lambda) = 2`. Let's find it more precisely, quantitatively. The best best Lambda is the one that minimizes the 10FCV test MSE. The `cv.glmnet()` output object has the attribute `lambda.min` that (conveniently) stores the Lambda with the smallest CV test MSE. Let's display it, along with its log to match the plot display. Let's also compute the corresponding CV test MSE by taking the CV vector \`\$cvm`(has all MSE's for all Lambdas) and finding its minimum value. I then display the results. And, sure enough, the best lambda is 8 with`log(lambda) = 2.079`and`10FCV = 113,198.6\`.
+
+```{r}
+best.lambda <- cv.10Fold$lambda.min 
+min.mse <- min(cv.10Fold$cvm)
+
+cbind("Best Lambda" = best.lambda, 
+      "Log(Lambda)" = log(best.lambda), 
+      "Best 10FCV MSE" = min.mse)
+```
+
+## Extracting Ridge Coefficients
+
+You can extract Ridge regression coefficients for any level of Lambda shrinkage with the `coef()` function and the `s=` parameter.
+
+Similar to OLS with `Lambda = 0`
+
+```{r}
+options(scipen = 4)
+ridge.0 <- round(coef(ridge.mod, 
+                      s = 0), 
+                 digits = 4)
+```
+
+For the optimal Lambda `s = best.lambda`.
+
+```{r}
+ridge.best <- round(coef(ridge.mod, 
+                         s = best.lambda), 
+                    digits = 4)
+```
+
+For some arbitrary `Lambda = 50`
+
+```{r}
+ridge.50 <- round(coef(ridge.mod, 
+                       s = 50), 
+                  digits = 4)
+```
+
+For some extreme shrinkage value, close to the Null model
+
+```{r}
+ridge.huge <- round(coef(ridge.mod, 
+                         s = 10 ^ 20), 
+                    digits = 4)
+```
+
+Let's display all coefficients
+
+```{r}
+ridge.all <- cbind(ridge.0, 
+                   ridge.best, 
+                   ridge.50, 
+                   ridge.huge)
+colnames(ridge.all) <- c("OLS, Lambda = 0", 
+                         "Best Lambda = 8", 
+                         "Lambda = 50", 
+                         "Almost Null")
+ridge.all
+```
+
+As you can see from the output above, the OLS coefficients are the same as those for the Ridge model with `Lambda = 8` (minimal shrinkage). The coefficients appear to be identical, but that is due to rounding. With sufficient decimals you should see some very small differences. You can also see that an arbitrary value of `Lambda = 50` biases the coefficients a little, but not by much. In contrast, the large Lambda yields an almost Null model. I say "almost" because Ridge does not drop the coefficients, and with sufficient decimals you would see very small non-zero coefficients. But for practical reasons, a Lambda = 10 \^ 20 yields very similar results to the Null model.
+
+You can also get coefficients for a specific group of lambdas, any sequence of lambdas or a particular lambda number:
+
+```{r}
+ridge.mod.group <- glmnet(x, y, 
+                          alpha = 0, 
+                          lambda = c(10 ^ 20, 10000, 10, 0)) 
+round(coef(ridge.mod.group), 
+      digits = 4) # Take a look
+```
+
+Or display coefficients for a sequence of Lambdas
+
+```{r}
+ridge.mod.sequence <- glmnet(x, y, 
+                             alpha = 0, 
+                             lambda = seq(1, 5)) 
+round(coef(ridge.mod.sequence), digits = 4) # Take a look
+```
+
+And also display coefficients for a particular sequence order of Lambda
+
+```{r}
+ridge.mod.sequence$lambda[3] # e.g., display the third Lambda
+round(coef(ridge.mod.sequence)[ ,3], 
+      digits = 4) # Its coefficients
+```
+
+## Predicting with Ridge
+
+We can use the **predict()** function to obtain Ridge regression coefficients using the attribute `type = "coefficients"`. Let's find the Ridge regression coefficients for the best lambda:
+
+```{r}
+predict(ridge.mod, 
+        s = best.lambda, 
+        type = "coefficients")
+```
+
+Now let's use the `predict()` function to make actual predictions. To do predictions with Ridge regression, you need to store the observations you want to do predictions for in a **new X** and specify it with the `newx =` parameter. This `newx` can either be new data for which you want to make predictions, or some test sub-sample to evaluate the model's accuracy. For the purposes of this example, let's just draw a random test sub-sample with 5% of the existing observations, using the best lambda we found above from the same **x** predictor matrix above.
+
+```{r}
+set.seed(1)
+test <- sample(1:nrow(x), 
+               0.05 * nrow(x))
+x.test <- x[test, ] # Extract test sub-sample
+ridge.pred <- predict(ridge.mod, # predict outcomes
+                      s = best.lambda, 
+                      newx = x.test)
+ridge.pred # Take a look
+```
+
+## Ridge and Logistic Regression
+
+You can fit a Ridge shrinkage model on a Logistic Regression simply by adding the parameter `family = "binomial"` to both functions, `glmnet()` and `cv.glmnet()`. Selecting the best lambda is identical to quantitative Ridge models. The coefficient interpretation in Ridge Logistic is the same as for Logistic Regression interpretation based on log-odds effects.
+
+To illustrate Ridge Logistic, we can access the `SAHeart.data` dataset in Prof. Robert Tibshirani's web site, which contains variables associated with coronary heart disease. The dataset and variable descriptions are available at: <https://rdrr.io/cran/ElemStatLearn/man/SAheart.html>.
+
+Once you have downloaded the data set , you can open it directly. I downloaded the file in CSV format with the name **Heart.csv**, which can be read as follows:
+
+```{r}
+heart <- read.table("Heart.csv", sep = ",", head = T)
+```
+
+Once you have the data in the heart data frame object, the next step is to create the predictor matrix **x** and the outcome vector **y**. The outcome variable is binary, **chd = 1** for disease, **0** otherwise)
+
+```{r}
+x <- model.matrix(chd ~ ., data = heart)[,-1]
+y <- heart$chd
+```
+
+We then follow the same steps as for quantitative Ridge regressions, described above, with three differences:
+
+-   We use the `family = "binomial"` parameter
+-   The CV test reported in `$cvm` is deviance using the `2LL = -2 * Log-Likelihood` fit statistic for GLM models
+-   If we want to use **classification error** as the CV test deviance, we simply include the `measure.type = "class"` parameter.
+
+```{r}
+# Fit the Ridge Logistic model
+ridge.logit=glmnet(x, y, 
+                   alpha = 0, 
+                   family = "binomial") 
+
+# Find best lambda:
+set.seed(1)
+cv.10Fold.logit <- cv.glmnet(x, y, 
+                             alpha = 0, 
+                             family = "binomial")
+
+# Report (first 10 Lambdas to minimize the printout) and plot
+cbind("Lambda" = cv.10Fold.logit$lambda, 
+      "10-Fold CV Deviance" = cv.10Fold.logit$cvm)[1:10,]
+plot(cv.10Fold.logit)
+```
+
+Now let's find the **Best Lambda**.
+
+```{r}
+best.lambda.logit <- cv.10Fold.logit$lambda.min 
+log(best.lambda) # Log to spot it in the plot
+min.mse.logit <- min(cv.10Fold.logit$cvm)
+```
+
+And then display the results
+
+```{r}
+cbind("Best Lambda" = best.lambda.logit, 
+      "Log(Lambda)" = log(best.lambda.logit), 
+      "Best 10FCV Deviance" = min.mse.logit)
+```
+
+Then let's display coefficients
+
+```{r}
+# Logit Model
+ridge.logit.coef.0 <- coef(ridge.logit, 
+                           s = 0)
+```
+
+Alternatively, you can use the following to extract coefficients:
+
+```{r}
+predict(ridge.logit, s = best.lambda.logit, type = "coefficients")
+```
+
+Best Lambda Model
+
+```{r}
+ridge.logit.coef.best <- coef(ridge.logit, 
+                              s = best.lambda.logit)
+```
+
+Almost Null Model
+
+```{r}
+ridge.logit.coef.large <- coef(ridge.logit, 
+                               s = 10 ^ 20)
+```
+
+Display all coefficients
+
+```{r}
+all.coefs <- round(cbind(ridge.logit.coef.0,
+                         ridge.logit.coef.best,
+                         ridge.logit.coef.large), 
+                   digits = 4)
+colnames(all.coefs) <- c("Logistic", 
+                         "Best Lambda", 
+                        "Almost Null Model")
+all.coefs
+```
+
+# LASSO Regression
+
+To fit LASSO regression models we follow the exact same steps as above, except that we use the parameter `alpha = 1` rather than 0.
+
+We can also fit Elastic Net regression models using `0 < alpha < 1`, which is a hybrid between Ridge and LASSO.
+
+Again, the one difference between Ridge regression and LASSO is that coefficients can shrink significantly with Ridge regression, but they never become 0 (except when lambda is infinite). In contrasts, some LASSO coefficients can shrink to 0. The more you shrink, the more coefficients drop out of the model. Let's re-create the x predictor matrix and y outcome vector for the Hitters data set.
+
+We already did this above, but let's repeat it here for convenience.
+
+```{r}
+library(glmnet)
+library(ISLR) # Contains the Hitters baseball player salary data set
+Hitters <- na.omit(Hitters) 
+options(scipen = 4)
+
+x <- model.matrix(Salary ~ .,data = Hitters)[ ,-1]
+y <- Hitters$Salary 
+```
+
+Now let's fit the LASSO model and graph the **L1 Norm**. L1 Norm is the sum of the absolute values of the coefficients in a LASSO regression. Like L2 Norm, it measures the total amount of shrinkage obtained by a particular Lambda value used, but using absolute values, rather than squared values. The larger the L1 the smaller the shrinkage.
+
+```{r}
+lasso.mod <- glmnet(x, y, 
+                    alpha = 1) 
+plot(lasso.mod) # Plot the L1 Norm against the coefficients
+```
+
+## Optimal LASSO Lambda
+
+```{R}
+set.seed(1) # To get repeatable results
+cv.10Fold.lasso <- cv.glmnet(x, y, 
+                             alpha = 1) # 10-Fold is the default
+# Use the parameter nfolds=xx to change the number of folds
+```
+
+List all lambdas and corresponding CV test deviance (2LL)
+
+```{r}
+round(cbind("Lambda" = cv.10Fold.lasso$lambda, 
+            "10 Fold 2LL" = cv.10Fold.lasso$cvm), 
+      digits = 4)[1:60, ]
+plot(cv.10Fold.lasso) # Plot all lambdas vs. MSEs
+```
+
+Let's find the best lambda that minimizes 10FCV deviance
+
+```{r}
+best.lambda.lasso <- cv.10Fold.lasso$lambda.min 
+log(best.lambda.lasso) # Spot it in the plot
+min.mse.lasso <- min(cv.10Fold.lasso$cvm)
+
+round(cbind("Best Lambda" = best.lambda.lasso, 
+            "Log(Lambda)" = log(best.lambda.lasso), 
+            "Best 10FCV MSE" = min.mse.lasso), 
+      digits = 4)
+```
+
+## Extracting LASSO Coefficients
+
+```{r}
+lasso.0 <- coef(lasso.mod, s = 0) # No shrinkage, same as OLS
+lasso.best <- coef(lasso.mod, s = best.lambda.lasso) # best Lambda
+lasso.50 <- coef(lasso.mod, s = 50) # Some lambda=50
+lasso.large <- coef(lasso.mod, s = 10 ^ 20) # Null model
+
+lasso.all <- cbind(lasso.0, 
+                   lasso.best, 
+                   lasso.50, 
+                   lasso.large)
+colnames(lasso.all) <- c("OLS, Lambda = 0", 
+                         "Best Lambda = 1.84", 
+                         "Lambda = 50", 
+                         "Null")
+lasso.all # Display all coefficients
+```
+
+Let's compare the effects for the best LASSO and Ridge models
+
+```{r}
+best.both <- cbind(ridge.best,
+                   lasso.best)
+colnames(best.both) <- c("Ridge",
+                         "LASSO")
+best.both # Display all coefficients
+```
+
+Notice again that the OLS and best LASSO models are just about the same. This is not surprising because the best Ridge model was also very close to the OLS model, suggesting that there are no major dimensionality issues, so naturally, the best LASSO model will be close to the OLS model.
+
+## Predicting with LASSO
+
+As with Ridge regression, we can use the `predict()` function to obtain LASSO regression coefficients
+
+```{r}
+lasso.coef <- predict(lasso.mod, 
+                      s = best.lambda.lasso,
+                      type = "coefficients")
+lasso.coef # Notice that the dropped predictors show blanks
+```
+
+To make actual predictions and to run LASSO Logistic models, the processes are identical to the ones for Ridge regression above.

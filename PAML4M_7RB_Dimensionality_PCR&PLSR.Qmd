@@ -1,0 +1,388 @@
+---
+title: "Appendix R7B: Dimensionality - Dimension Reduction"
+subtitle: "Principal Components and Partial Least Squares Regressions"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+     
+fig-width: 10
+fig-height: 6
+
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples about predictive modeling methods based on dimension reduction -- Principal Components Regression (PCR) and Partial Least Squares Regression (PLSR). These models aim to correct issues of dimensionality, such as severe multicollinearity. In contrast to Ridge and LASSO, which shrink all coefficients to different lambda values, PCR and PLSR decompose the predictors into components, with each component being a linear weighted combination of all predictors. In general, the first component in either method is the one that captures the largest amount of variance in the predictors. The second component captures the second largest variance, and so on. If the first M components capture a large portion of the P predictor's variance (e.g., 70%) and M << P, then we would accomplish a substantial amoung of dimension reduction. It is important to note that as we add more more components, the model becomes closer to the OLS model. That is, a model with few component has more bias and less variance, thus less useful for interpretation, whereas a model with lots of component has less bias but more variance. Again, Cross-Validation can help us evaluate the optimal number of componentts to use. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). 
+---
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+**Technical Note:** All procedures involving Machine Learning and Cross-Validation are based on random sampling. Therefore, results may change when you run the analysis multiple times, depending on the kind of random number generator **RNGkind** and the seed selected. The results in this script may not match the outputs in the main text of the book. Follow the chapter and this script appendix independently. Let's first set the random number generator default
+
+```{r}
+RNGkind(sample.kind = "default") # To use the R default RNG
+```
+
+# Dimensionality
+
+As discussed previously, large and complex models generally suffer from **dimensionality** issues, causing them to be over-fitting and have high variance. One of the most pervasive dimensionality issues is multicollinearity. **Regularized** methods like Ridge and LASSO help us reduce the detrimental effects of multicollinearity by shrinking (i.e. biasing) the predictors. In contrast, dimension reduction methods don't just help correct for multicollinearity, but actually **take advantage of the multicollinearity** structure of the data. In fact, dimension reduction methods like PCR and PLSR don't help much if the multicollinearity condition in the data is low. In contrast, But it can improve things dramatically when there is severe multicollinearity. This family of methods is particularly useful when there are many predictors relative to the number of observations.
+
+The basic idea is this. If two predictors are uncorrelated, a scatter plot of the two variables will show a somewhat spherical cloud of data points with no clear alignment in one direction or another. In contrast, if two predictors are highly correlated, the scatter plot of these two predictors will show a thin cloud of data points aligned in one direction. The direction of this alignment is the direction in which the variance in the data is the highest. When there are more than 2 predictors, there will be more than one direction of alignment, depending on which variable is correlated with which. If you move the origin of the plot to the mean of all variables and then rotate the axes in the direction of highest variance, second highest, etc. you would be aligning the rotated axes with **1st. Principal Component (1st PC)**, **2nd PC**, etc.
+
+The idea behind dimension reduction is that, for **N predictors**, there are **N PCs** and these PC's have some interesting properties:
+
+1.  They are perpendicular, i.e., **orthogonal** to each other. Once you have identify the 1st. PC, the 2nd PC can be found by taking an axis that is perpendicular to the 1st PC and rotating it around it until the direction of second largest variance is found. Same thing with the 3rd PC, and so on.
+
+2.  The resulting PCs are thus constructed as linear combinations of the predictors are independent or uncorrelated (i.e., a linear weighted sum of a portion of each predictor). Consequently, all predictors are represented to some extent in each PC. Also, because the PC's are rotated orthogonally (i.e., at right angles), the PC's are uncorrelated, so they are truly independent variables.
+
+3.  The PCs are ordered from highest to lowest variance. This allows you to explore the PCs to find the first **M PCs** that explain a substantial amount of variance in the data.
+
+4.  When the predictors are highly correlated, the first few PCs will explain a large proportion of variance in the data, and the last PCs will explain very little. In contrast, when there is little correlation among the predictors, you will need lots of components, and perhaps all of them to represent the variance of the data.
+
+5.  So, the goal is to identify first M PC's that explain, say 70% or 80% of the variance of the predictors and disregard the remaining PCs. If `M << P` you will be achieving substantial dimension reduction, because you can now run a regression with M PC's, rather than with P predictors.
+
+6.  PCR and PLSR will estimate a 1 PC model, 2 PC model, etc., up to a P PC model that includes all PCs. The model (either PCR or PLSR) with all P PCs will yield identical results to the OLS or GLM model. As the number of PCs in the model decreases, the variance of the model decreases too, but the bias increases. Therefore, models with **more PCs** are **better for interpretations**, whereas models with the **lowest CV test deviance** are **best for predictions**.
+
+There are a few dimension reduction methods, but two of the most popular ones are: (1) **Principal Components Regression (PCR)** in which the predictors are rotated to find the PCs, without taking into account whether these dimensions help predict the outcome variable (i.e., **unsupervised** method); and (2) **Partial Least Squares Regression (PLSR)**, which is similar to PCR, but the axes are further rotated to improve their correlation with the response variable (i.e., **supervised** method). PCR and PLSR are competing methods of similar king and there is no guarantee that one method will be better than the other. It is recommended to test both and select the one with best results. Depending on the data, you never know which of the two models will yield better results.
+
+# Principal Components Regression (PCR)
+
+I will use the `{pls}` R package for both PCR and PLSR and also the **Hitters** data set from the `{ISLR}` R package, containing baseball player salaries and 19 predictors. Note that the`pcr()` function syntax is similar to the `lm()` function syntax, with a few additional parameters. Let's start by loading the libraries and eliminate rows with omitted data.
+
+```{r}
+library(pls) # Has the Principal Components Regression pcr() function
+library(ISLR) # Has the Hitters data set
+Hitters <- na.omit(Hitters) # Let's remove missing values
+```
+
+Predict Salary with all predictors. `scale = T` standardizes the predictors, which is recommended, especially when variables are in different scales (e.g., lbs, feet, etc.). Also, `validation = "CV"` does 10FCV and `validation = "LOO"` does LOOCV. We use all predictors in the model.
+
+```{r}
+set.seed(2) # Arbitrary
+pcr.fit <- pcr(Salary ~ ., 
+               data = Hitters, 
+               scale = T, 
+               validation = "CV")
+```
+
+The first step is to analyze the model results visually. We do this by plotting the **Scree Plot**, which shows the MSE or RMSE for all the PC models. I'm showing the plot with **MSE** but you can use change the `val.type =` parameter to `"RMSEP"` if you prefer the RMSE. Both graphs are similar, except for the scale of the error.\`
+
+```{r}
+validationplot(pcr.fit, 
+               val.type = "MSEP", 
+               legendpos = "topright") # Plots the MSE
+```
+
+In the Scree Plot above, one can see that the MSE drops substantially from 0 PCs (Null model) to 1 PC and it then the graph **elbows** to the right. A **sharp elbow to the right** is a point of interest because it is a point where we achieve sharp error reductions, with little change afterwards. There is another sharp elbow to the right at 6 PCs and then another one at 16 PCs. These are all models of interest worth exploring further quantitatively. There is an elbow pointing upwards at 13 PCs, but this is not a point of interest, because the MSE turns downwards after that, so it is better to continue going to the right.
+
+Let's analyze the model quantitatively.
+
+```{r}
+summary(pcr.fit) # Take a look
+```
+
+A few notes about the `summary()` of the `pcr()` results object. First, notice that there are two output panels. The first panel is the **Validation** and the second one is about **explained variance**.
+
+**Validation Output Panel**
+
+1.  This panel shows CV **Square Root (MSE)** values, not MSE. Naturally, you can square these values to get the MSEs. The adjCV is a "bias-corrected" CV. It makes very little difference for our purposes, but adjCV makes some statistical adjustment that may come from sampling bias in CV testing. Let's pay more attention to the plain CV values, which are the real ones.
+
+2.  The CV RMSE goes down from 0 (Null model) to 1 component and it then goes up and down slightly until it gets to 6 components with a `CV RMSE = 343.7`. It then goes up and down again, with another low point at 16 components with a `CV RMSE = 343.4`. The absolute lowest point is at 18 components with a `CV RMSE = 341.2`.
+
+**Variance Explained Panel**
+
+1.  The **X** row shows how much of the variance of the original predictors (i.e., X's) is explained by the PCs. For example, **6 PCs** explain `88.63%` of the variance in the predictors. The **1st PC** explains `38.31%` of the variance of the predictors. The model with **2 PCs** explains `60.16%` of the variance of the predictors. This means that the **2nd PC** alone explains `60.16 - 38.31 = 21.85%` of the variance of the predictors. As expected, the 1st PC explains more variance than the 2nd PC, and so on, but cumulatively, more PCs explain increasingly more variance.
+
+2.  **Salary** is the outcome variable, so its row shows how much of the outcome variable variance is explained by the model. For example, a model with **6 PCs** explain `46.48%` of the variance in Salary. This is equivalent to the 6 PC model's **R-Squared**.
+
+\*\* Selecting the Best Model\*\*
+
+Which model is the best to select depends on the analytics goals:
+
+1.  If the analytics goal is predictive accuracy, it is best to select the model with the lowest CV RMSE or 18 PCs in this case.
+
+2.  If the analytics goal is interpretability, it is best to select the model with the largest possible number of PCs that has an acceptable CV RMSE, which in this case is also 18 PCs.
+
+3.  If the analytics goal is to substantially reduce the dimension of the model (this is often the goal when there is a very large number of predictors and not a lot of observations, which is typical in survey data analysis, for example), it is best to select the model with the smallest number of PC's that explains at least `70%` of the variance of the predictors, which is 3 PCs in this case, which explains `70.84%`.
+
+## PCR Loadings and Scores
+
+The **pcr()** object is very complex and is full of information. You can explore this object's results with `str(pcr.fit)`. If you run this function, you will see an object attribute named **\$loadings**, which is a data frame containing one column for each component model and one row for each predictors. I'm only listing the first 8 PC models for simplicity, but you can remove the `[,1:8]` index to see all of them.
+
+```{r}
+round(pcr.fit$loadings[ ,1:8], 
+      digits = 3)
+```
+
+You can verify that the **sum of squared** component loadings for each row or each column always equals 1. These weights can be used to convert predictors into PCs and the PCs back into predictors:
+
+```{r}
+sum(pcr.fit$loadings[1, ] ^ 2) # Sum of squared loadings for 1st predictor
+sum(pcr.fit$loadings[ ,1] ^ 2) # Sum of squared loadings for 1st PC
+```
+
+If you take the predicted values for some observations and convert them into their PC equivalent values, these values are called **PC Scores**. I'm only listing the first 6 scores of the first 10 observations, for simplicity:
+
+```{r}
+round(pcr.fit$scores[1:10, 1:6], 
+      digits = 4)
+```
+
+## PCR Coefficients
+
+Reconstructing coefficients for the actual predictors from the PCs is straightforward. The **\$coefficients** attribute of the **pcr()** contains these values in a list.
+
+To get the coefficients for the 1-PC model
+
+```{r}
+pcr.fit$coefficients[ , , 1] 
+# Or, alternatively: coef(pcr.fit, ncomp = 1)
+```
+
+To get the coefficients for the 3-PC model:
+
+```{r}
+pcr.fit$coefficients[ , , 3] 
+# Or alternatively coef(pcr.fit, ncomp = 3)
+```
+
+To get coefficients for the second variable (Hits) of the 3-PC model
+
+```{r}
+pcr.fit$coefficients[2, , 3]
+```
+
+To get coefficients for, say 2- to 4-PC component models:
+
+```{r}
+pcr.fit$coefficients[ , , 2:4] 
+# Or alternatively coef(pcr.fit, ncomp = 2:4), different format
+```
+
+To get coefficients for a group of models, say 3, 6 and 18 PCs
+
+```{r}
+pcr.fit$coefficients[ , , c(3, 6, 18)] 
+# Or alternatively coef(pcr.fit, ncomp = c(3, 6, 18)) 
+```
+
+Can you spot the most biased model and the most biased coefficient in that model? Look for any coefficient that changes substantially in sign and magnitude. The most unbiased model of the 3 is the model with 18 PCs, because it is the closest to the OLS. Notice that some coefficients change in value to some extent, but the change is not much (e.g., HmRun, LeagueN), but others change wildly and even change signs (e.g., AtBat, CWalks). Listing the coefficients for various PC models is useful because you can easily spot the most problematic predictors when it comes to bias and interpretation.
+
+## Predictions with PCR
+
+To do predictions, you can use any data frame with values to feed to the predict() function. The values need to be in the same format as the original predictors. For this illustration I use 5% of the existing data to test our predictions. For this illustration, we use a model with 18 components for the prediction. Let's use a random subset of 5% of the data to make predictions using the trained model with the test data:
+
+```{r}
+set.seed(2) # Randomly selected
+test <- sample(1:nrow(Hitters), 
+               0.05 * nrow(Hitters))
+Hitters.test <- Hitters[test, ] # Test sub-sample 
+pcr.pred <- predict(pcr.fit,
+                    Hitters.test, 
+                    ncomp = 18) 
+pcr.pred
+```
+
+We can then compute the MSE for these predictions:
+
+```{r}
+MSE <- round(
+             mean( (pcr.pred - Hitters.test$Salary) ^ 2 ), 
+             digits = 2)
+paste("MSE =", MSE)
+```
+
+And also the RMSE:
+
+```{r}
+RMSE <- round(sqrt(MSE), digits = 2)
+paste("RMSE =", RMSE)
+```
+
+# Partial Least Squares (PLS) Regression
+
+The process for fitting **PLSR** models is the same as for **PCR** models, except that we use `plsr()` function from the same `{pls}` library instead of `pcr()`. The interpretation and analysis of the outputs is identical to **PCR**. The only thing that changes is how the PCs are constructed, but this is not visible in the **PLSR** output. In the next script lines, repeat the same steps above, but with the `plsr()` function.
+
+```{r}
+library(pls)
+library(ISLR) # Has the Hitters data set
+set.seed(2) # Arbitrary
+pls.fit <- plsr(Salary ~ ., 
+                data = Hitters, 
+                scale = T, 
+                validation = "CV")
+validationplot(pls.fit, 
+               val.type = "MSEP", 
+               legendpos = "topright")
+```
+
+To get the RMSE instead of the MSE above, just change the validation type to `val.type = "RMSEP"`.
+
+Now let's display the summary of the PLSR model output
+
+```{r}
+summary(pls.fit)
+```
+
+Notice in the output the similarities and differences between PLSR and PCR. With PLSR, the first marked elbow is also at 1 PC. But the next interesting elbow is at 8 PCs, not 6. But then, the CV MSE goes down slightly and remains relatively flat. These are the recommended models from this output:
+
+1.  If the analysis goal is predictive accuracy, it would be best to select the model with the lowest CV RMSE or 17 PCs in this case, with `CV RMSE = 339.2`.
+
+2.  If the analysis goal is interpretability, it would be best ti select the largest possible model with an acceptable CV RMSE, which in this case is also 17 PCs. However, since the difference in CV RMSE between 17 PCs and the full 19 PCs is minuscule, it would be OK to interpret the results with the 19 PC model.
+
+3.  If the analysis goal is to substantially reduce the dimension of the model, it would be best to select the model with the smallest number of PC's that explain at least 70% of the varianec of the predictors, or 4 PCs in this case, which explains 73.93% of the variance in the predictors, which is a good representation of the data.
+
+## PLSR Loadings and Scores
+
+**PLSR PC Loadings**
+
+```{r}
+round(pls.fit$loadings[ ,1:8], 
+      digits = 3)
+```
+
+**PLSR PC Scores**
+
+```{r}
+round(pls.fit$scores[1:10, 1:6], digits = 4)
+```
+
+## PLSR Coefficients
+
+To get the coefficients for the 1 PC-model
+
+```{r}
+pls.fit$coefficients[ , ,1] 
+# Or, alternatively: coef(pls.fit, ncomp = 1)
+```
+
+To get the coefficients for the 3 PC-model:
+
+```{r}
+pls.fit$coefficients[ , ,3] 
+# Or alternatively coef(pls.fit, ncomp = 3)
+```
+
+To get the coefficients for the second variable (Hits) of the 3-PC model
+
+```{r}
+pls.fit$coefficients[2, , 3]
+```
+
+To get the coefficients for, say 2 to 4 PCR component models:
+
+```{r}
+pls.fit$coefficients[ , , 2:4] 
+# Or alternatively coef(pls.fit, ncomp = 2:4) # different format
+```
+
+To get the coefficients for a group of models, say 1, 8 and 17 PCs
+
+```{r}
+pls.fit$coefficients[ , , c(1, 8, 17)] 
+# Or alternatively coef(pls.fit, ncomp = c(1, 8, 17)) 
+```
+
+As with PCR, you can spot the most biased model and the most biased coefficient in that model. Interestingly, the models don't get as biased as with PCR when we reduce the number of components. Notice that some coefficients in the 8 PC model are different than the 17 PC model, but except for a few cases, not by much.
+
+## Predictions with PLSR
+
+Again, the process is the same as for PCR:
+
+```{r}
+set.seed(2) # Arbitrary
+test <- sample(1:nrow(Hitters), 
+               0.05 * nrow(Hitters))
+Hitters.test <- Hitters[test, ] # Test sub-sample 
+pls.pred <- predict(pls.fit, 
+                    Hitters.test, 
+                    ncomp = 17) 
+pls.pred
+```
+
+We can then compute the MSE for these predictions as follows:
+
+```{r}
+MSE <- round(
+             mean( (pls.pred - Hitters.test$Salary) ^ 2 ), 
+             digits = 2)
+paste("MSE =", MSE)
+```
+
+And the RMSE by taking the square root:
+
+```{r}
+RMSE <- round(sqrt(MSE), digits = 2)
+paste("RMSE =", RMSE)
+```
+
+# Logistic and GLM Regressions with PCR and PLSR
+
+Running PCR and PLSR models with classification models like Logistic or even other GLM models, is similar to the quantitative methods we discussed above. The only problem is that the **{pls}** R package does not work with **GLM** models. But there are many libraries to estimate these models. In the example below I illustrate estimating a **Logistic PCR** model using the **pcr()** function from the **{compositional}** R package.
+
+As with the Ridge regression I illustrate how to setup a Logistic model with PCR or PLSR. Again, we can access the `SAHeart.data` dataset in Prof. Robert Tibshirani's web site, which contains variables associated with coronary heart disease. The dataset and variable descriptions are available at: <https://rdrr.io/cran/ElemStatLearn/man/SAheart.html>.
+
+Once you have downloaded the data set , you can open it directly. I downloaded the file in CSV format with the name **Heart.csv**, which can be read as follows:
+
+```{r}
+heart <- read.table("Heart.csv", sep = ",", head = T)
+```
+
+Once you have the data in the heart data frame object, the next step is to create the predictor matrix **x** and the outcome vector **y**. The outcome variable is binary, **chd = 1** for disease, **0** otherwise)
+
+```{r}
+x <- model.matrix(chd ~ ., data = heart)[,-1] 
+y <- heart$chd
+```
+
+We now can estimate a **Logistic PCR** model using the `pcr()` function from the **{compositional}** R package.
+
+```{r}
+library(Compositional)
+```
+
+**Technical Note:** the outcome variable in the data set must be an integer. If the outcome is 0 or 1 as an integer, the function will fit a Logistic model. If it contains multiple integer values, it will fit a count data model.
+
+The next step is to **tune** the model using the `pcr.tune(y, x, graph=T)` function. The default CV tuning method is **10FCV**, but you can use the `nfolds =` parameter to change the number of CV folds. The function renders a scree plot and also the mean deviance for every fold in each PC
+
+```{r}
+heart.tune <- pcr.tune(y, x, 
+                       graph = T)
+round(heart.tune$msp, digits = 4)
+```
+
+To find the number of components that minimizes the CV deviance, we use the **\$k** attribute:
+
+```{r}
+best.comp <- heart.tune$k 
+best.comp # Check it out
+```
+
+You can now fit a PCR model with k components
+
+```{r}
+heart.pcr <- pcr(y, x, 
+                 k = best.comp)
+heart.pcr$be # Log-Odds coefficients
+```
+
+Let's display the results with log-odds and odds
+
+```{r}
+results <- round(cbind(heart.pcr$be, 
+                       exp(heart.pcr$be)), 
+                 digits = 4)
+colnames(results) <- c("5 PC Log-Odds", 
+                       "5 PC Odds")
+results
+```

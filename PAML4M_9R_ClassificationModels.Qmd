@@ -1,0 +1,991 @@
+---
+title: "Appendix R9: Classification Models"
+subtitle: "Binomial and Categorical Classification Models"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+
+fig-width: 10
+fig-height: 6
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples about classification models. A classification model predicts the correct classification of an outcome rather than its quantitative value. Models with only two possible outcomes are called **Binomial** and those with more than two outcomes are called **Multinomial**. The standard baseline classification model is the Binomial or Multinomial Logistic Regression, which I briefly introduced in Chapter 3. I also discuss other popular classification models, like Linear (LDA) and Quadratic Discriminant Analysis (QDA), and popular methods and metrics to evaluate model accuracy, such as the Confusion Matrix, Misclassification rates, Sensitivity and Specificity, Receiver Operating Characteristics (ROC) Curve, and Area under the ROC Curve (AUC). For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+---
+
+*This script was created by J . Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+# 1. Introduction
+
+## Overview
+
+Classification models predict outcomes that are either binary or categorical. There are several types of classification models, including Logistic regression, classification trees, linear and quadratic discriminant analysis (LDA and QDA), and classification neural networks, among others. We will be using the Stock Market **{ISLR}Smarket** data set frequently in this section. Before you continue, review the variables in this data set by typing **?Smarket** at the console.
+
+```{r}
+library(ISLR) # Contains the Smarket data set
+dim(Smarket) # Dimensions of the Smarket data set
+```
+
+This data set does not yield very interesting results in Logistic models but the results illustrate a few important points. It also illustrates the use of lag transformations in logistic models. Let's explore the data:
+
+```{r}
+names(Smarket)
+head(Smarket)
+```
+
+One important thing to note is that the variable "Direction" is categorical, not binary. So, we have two choices, create a binary variable called "Up" = 1 when Direction is up and 0 otherwise. But in the example below we don't make conversions until later and we let R take care of this for us. Let's now explore the data:
+
+```{r}
+summary(Smarket)
+```
+
+## The Generalized Linear Model Function glm()
+
+As discussed in Chapter 3, Ordinary Least Squares (OLS) regressions require the residuals to be normally distributed and the outcome variable to be continuous. When these assumptions don't hold, the Generalized Linear Model (GLM) can be used instead. OLS models are estimated with the **lm()** function in R, whereas GLM models are estimated with the **glm()** function. The syntax for the **glm()** function is the same as for the **lm()**, except that we need to provide two additional parameters:
+
+-   The **family distribution** of the residuals, specified with the `family =` parameter
+-   Any required **transformations** of the outcome variable to overcome the lack of continuity, specified with the `link =` function inside the family parameter.
+
+A linear model with no transformation of the dependent variable estimated with **glm()** and a **gaussian** distribution yields the exact same results as **OLS** with the `lm()` function. But `glm()` also supports other distributions and transformations of the dependent variable besides the normal distribution.
+
+Different regression methods require specific model `family =` and `link =` parameters in the `glm()` function:
+
+-   Binomial Logistic regression -- `family = binomial(link = "logit")`
+-   OLS regression -- `family = gaussian(link = "identity")` (default)
+-   Binomial Probit regression -- `family = binomial(link = "probit")` - probit stands for **Probability Unit** and it works just like logit, except that it uses a different transformation function for Y.
+-   Count data models -- `family = poisson(link = "log")`
+
+# 2. Binomial Logistic Regression
+
+In the next example, I will use the Heart.csv I had already downloaded from the ISLR website, but the actual data set and variable descriptions are available at: <https://rdrr.io/cran/ElemStatLearn/man/SAheart.html>. If you have not done so, download the data set and save it in CSV format as **Heart.csv** and then read it into a dataframe object named **heart**.
+
+Let's read the data and take a look at a few records:
+
+```{r}
+heart <- read.table("Heart.csv", 
+                    sep = ",", 
+                    head = T, 
+                    stringsAsFactors = T) 
+head(heart)
+```
+
+Logistic model predicting coronary heart disease:
+
+```{r}
+heart.fit <- glm(chd ~ ., 
+                 family = binomial(link = "logit"), 
+                 data = heart)
+summary(heart.fit)
+```
+
+Looks like tobacco, ldl, family history, type a and age are the strongest predictors of coronary heart desease (`chd = 1 yes; = 2 no`). Interestingly Once you control for these factors obesity and alcohol are not significant predictors. Take a closer look:
+
+## Logistic Regression Fit Statistics
+
+```{r}
+paste("2LL =", round(-2 * logLik(heart.fit), digits = 4)) 
+paste("Deviance =", round(deviance(heart.fit), digits = 4)) # Same value
+```
+
+There are various measures of deviance ajusted for model size, such as the Akaike Information Criterion (**AIC**), which is equal to `2LL + 2 * Number of variables`
+
+```{r}
+AIC(heart.fit)
+```
+
+Let's display them all together
+
+```{r}
+c("2LL" = -2 * logLik(heart.fit), 
+  "Deviance" = deviance(heart.fit), 
+  "AIC" = AIC(heart.fit))
+```
+
+## From Log-Odds to Odds
+
+```{r}
+log.odds <- coef(heart.fit) # Get the coefficients
+odds <- exp(log.odds) # Convert log-odds to odds
+```
+
+We can also convert the odds to probabilities, but the probability effect of a coefficient is relative to the value of the predictors, so it changes as the predictors change, so they are not very useful for interpretations, other than saying that any coefficient with a probability greater than 0.5 increases the likelihood of a positive outcome, whereas less than 0.5 decreases the likelihood. Nevertheless, probabilities are very useful when predicting actual outcomes.
+
+```{r}
+prob = odds / (1 + odds) # Convert odds to probabilities
+round(cbind("Log-Odds" = log.odds, # Display all 3 together
+            "Odds" = odds, 
+            "Probabilities" = prob),
+      digits = 3)
+```
+
+**95% Confidence intervals**
+
+With log-odds:
+
+```{r}
+round(confint(heart.fit), digits = 3) # In log-odds
+```
+
+With odds:
+
+```{r}
+round(exp(confint(heart.fit)), digits = 3)  # In odds
+```
+
+# 3. The Confusion Matrix
+
+## Cross-Validation Train and Test Sub-Samples
+
+Let's do some **Cross-Validation** testing with the **Confusion Matrix**.
+
+Let's start by defining the train and test sub-samples using the **heart** data frame. First, let's set the default random number generator and random seed (to get repeatable results)
+
+```{r}
+RNGkind(sample.kind = "default")
+set.seed(1)
+```
+
+Then, let's create an index vector for the train sub-sample
+
+```{r}
+train <- sample(1:nrow(heart), 
+                0.7 * nrow(heart))
+```
+
+We can now split the data into train and test sub-samples
+
+```{r}
+heart.train <- heart[train, ] # Train sub-sample
+nrow(heart.train) # Count the train observations
+
+heart.test <- heart[-train, ] # Test sub-sample
+nrow(heart.test) # Count the test observations
+```
+
+We can now train a Logistic regression model usint the train sub-sample
+
+```{r}
+heart.fit.train <- glm(chd ~ ., 
+                       family = binomial(link = "logit"), 
+                       data = heart.train)
+```
+
+We can now use the trained model to make predictions with the test data and evaluate the cross-validation accuracy of the model and build a confusion matrix with the results.
+
+## Confusion with cross-Validated Test Results
+
+We use the `predict()` function to use the trained model `heart.fit.train` to make predictions with the test subset. We use the `type = "response"` attribute to get the `probability of Y = 1`.
+
+```{r}
+heart.probs.test <- predict(heart.fit.train, 
+                            heart.test, 
+                            type = "response")
+heart.probs.test[1:10] # Take a look at the first 10 predictions
+```
+
+To build the confusion matrix, we need to convert the predicted probabilities computed above into actual classifications of 0 (negative) or 1 (positive). This requires that we set a threshold **lambda** for the probability level to use to classify and observation either as a 1 or a 0. For this example, I am using `lambda = 0.5`, so that any observation with a predicted probability of being a positive (i.e., 1) greater than 0.5 or 50% is classified as a 1. We can alter this tuning parameter later.
+
+```{r}
+lambda <- 0.5
+```
+
+Notice that I stored the threshold value in a variable named **lambda**. This way I can use the variable rather than the actual value 0.5 in the formulas below. This way, if I wish to change the threshold to another value, I just change it above and all the formulas that follow will work. You can try several values of lambda on your own.
+
+Let's create a vector to store a binary value 1 if the probability of the outcome being 1 exceeds this threshold and 0 otherwise. Let's then display the probabilities of the outcome variable `chd` being 1 side by side with the actual classifications. All probabilities \> 0.5 should have a 1, and a 0 otherwise.
+
+```{r}
+heart.pred.test <- ifelse(heart.probs.test > lambda, 1, 0) 
+cbind("Prob chd = 1" = round(heart.probs.test, digits = 3), 
+      "Predicted Classification" = heart.pred.test)[1:10,]
+```
+
+**Cross-Tabulation for the Confusion Matrix**
+
+Now we can construct the Confusion Matrix.
+
+**Technical Note:** The construction of the confusion matrix that follows is a bit involved, but notice that once you construct the cross-tabulation with the results of any binomial classification model, if you name your cross-table **conf.mat**, the rest of the script lines will work without modification, so you will be able to use this script for any classification method you use with a simple copy/paste.
+
+Let's use the `table()` function to cross-tabulate rows and columns of two vectors. The first vector has the classification predictions from the model using the test subset. The second vector has the actual classifications in the test subset.
+
+```{r}
+conf.mat <- table("Predicted" = heart.pred.test, 
+                  "Actual" = heart.test$chd) 
+colnames(conf.mat) <- rownames(conf.mat) <- c("No","Yes")
+conf.mat
+```
+
+We can easily add margin totals using the `addmargins()` function with 3 parameters: (1) the matrix object `conf.mat`; (2) `margin = 1` to display row totals, `margin = 2` to display column totals and `margin = c(1, 2)` to display row and column totals; and (3) `FUN = sum` to get margin totals.
+
+```{r}
+conf.mat <- table("Predicted" = heart.pred.test, 
+                  "Actual" = heart.test$chd) 
+colnames(conf.mat) <- rownames(conf.mat) <- c("No","Yes")
+
+conf.mat <- addmargins(conf.mat, 
+                       margin = c(1, 2), 
+                       FUN = sum) # Add margin totals
+conf.mat
+```
+
+**Technical note:** `FUN =` can be sum, mean, min, max, etc. if you need other aggregations.
+
+Once again, once you constructed **conf.mat** for whichever classification model you used, the rest that follows will be identical for any other binomial classification model.
+
+**Confusion Matrix Metrics**
+
+Let's compute true and false positives and negatives using variable names that are representative of the contents:
+
+```{r}
+TruN <- conf.mat[1, 1] # True negatives
+TruP <- conf.mat[2, 2] # True positives
+FalN <- conf.mat[1, 2] # False negatives
+FalP <- conf.mat[2, 1] # False positives
+
+TotN <- TruN + FalP # Total actual negatives
+TotP <- TruP + FalN # Total actual positives
+TotNpr <- TruN + FalN # Total negative predictions
+TotPpr <- TruP + FalP # Total positive predictions
+Tot <- TotN + TotP # Total
+```
+
+If you computed margin totals above, you can just read them directly from the third row and column in the `conf.mat` matrix:
+
+```{r}
+TotN <- conf.mat[3, 1]
+TotP <- conf.mat[3, 2]
+TotNPr <- conf.mat[1, 3]
+TotPpr <- conf.mat[2, 3] 
+Tot <- conf.mat[3, 3]
+```
+
+Let's do a quick review of the results
+
+```{r}
+cbind(TruN, TruP, FalN, FalP, 
+      TotN, TotP, 
+      TotNpr, TotPpr, 
+      Tot)
+```
+
+**Confusion Matrix Accuracy and Error Rates**
+
+Aggregate rates
+
+```{r}
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+```
+
+Sensitivity or rate of true (i.e., correctly classified) positives
+
+```{r}
+Sensitivity <- TruP / TotP 
+```
+
+Specificity or rate of true (i.e., correctly classified) correct negatives
+
+```{r}
+Specificity <- TruN / TotN 
+```
+
+False Positive Rate = `1 - specificity`. This may seem unnecessary, but the rate of false positives is a popular accuracy metric and one often used in ROC curves. It is the ratio of observations classified positive, which were actually negative.
+
+```{r}
+FalseP.Rate <- FalP / TotN # Or
+FalseP.Rate <- 1 - Specificity # Same result
+```
+
+Let's combine all metrics in a vector (to compare with other models later)
+
+```{r}
+logit.rates.50 <- c(Accuracy.Rate, Error.Rate, 
+                    Sensitivity, Specificity, FalseP.Rate)
+names(logit.rates.50) <- c("Accuracy", "Error", 
+                           "Sensitivity", "Specificity", "False Pos")
+print(logit.rates.50, digits = 2)
+```
+
+**Changing the Classification Threshold**
+
+To illustrate how simple it is to change the threshold, I have copied all the instructions above in to the script lines that follow, except that I set the lambda threshold value to **0.6**. Two important technical issues about this: (1) if you use a different model and data set, all you need to do is construct the **conf.mat** confusion matrix and the rest of the script commands will work; (2) if you have experience programming, you can easily embed these script lines inside a loop function that can compute confusion matrices for several lambda values. You should try it.
+
+```{r}
+lambda <- 0.6
+heart.pred.test <- ifelse(heart.probs.test > lambda, 1, 0) 
+cbind("Prob chd = 1" = round(heart.probs.test, digits = 3), 
+      "Predicted Classification" = heart.pred.test)[1:10,]
+```
+
+Confusion Matrix with the threshold `lambda = 0.6`
+
+```{r}
+conf.mat <- table("Predicted" = heart.pred.test, 
+                  "Actual" = heart.test$chd) 
+colnames(conf.mat) <- rownames(conf.mat) <- c("No","Yes")
+
+conf.mat <- addmargins(conf.mat, 
+                       margin = c(1, 2), 
+                       FUN = sum) # Add margin totals
+
+conf.mat <- addmargins(conf.mat, c(1, 2), sum) # Add margin totals
+conf.mat
+```
+
+```{r}
+TruN   <- conf.mat[1, 1]
+TruP <- conf.mat[2, 2]
+FalN   <- conf.mat[1, 2]
+FalP <- conf.mat[2, 1]
+
+TotN   <- TruN + FalP
+TotP <- TruP + FalN
+TotNpr <- TruN + FalN
+TotPpr <- TruP + FalP
+Tot    <- TotN + TotP
+
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+Sensitivity <- TruP / TotP 
+Specificity <- TruN / TotN 
+FalseP.Rate <- 1 - Specificity
+
+logit.rates.60 <- c(Accuracy.Rate, Error.Rate, Sensitivity, 
+                    Specificity, FalseP.Rate)
+names(logit.rates.60) <- c("Accuracy", "Error", "Sensitivity",
+                           "Specificity", "False Pos")
+```
+
+Compare the rates for both thresholds and see the sharp differences
+
+```{r}
+logit.rates.compare <- rbind(logit.rates.50, logit.rates.60)
+
+print(logit.rates.compare, digits = 2)
+```
+
+# 4. The Receiver Operating Characteristics (ROC) Curve
+
+To render ROC curves we use the **ROCR** library:
+
+```{r}
+library(ROCR)
+```
+
+The first step with ROCR is to create a `prediction()` object. It is important to note that this function is contained in the `{ROCR}` library and it is **NOT** the same as the `predict()` function in the `{stat}` package. The `predict(){stat}` function is used to make predictions, whereas the `prediction(){ROCR}` function is used to render the ROC curve. The `prediction()` function needs two vectors as inputs:
+
+-   The predicted probabilities for the test sub-sample, as computed above in `heart.probs.test`, and
+-   The corresponding actual values of the outcome variable in the test sub-sample `heart.test$chd`
+
+```{r}
+pred <- prediction(heart.probs.test, heart.test$chd) 
+```
+
+The next step is to use the `performance(){ROCR}` function to create the ROC object. Use the parameter `"tpr"` for **True Positive Rate** in the vertical axis, and `"fpr"` for **False Positive Rate** in the horizontal axis. Other possible values are: `"acc"` for accuracy; `"err"` for error rate; `"sens"` for sensitivity; `"spec"` for specificity; and `"auc"`for area under the curve.
+
+```{r}
+perf <- performance(pred, "tpr", "fpr")
+plot(perf, colorize = T) # Plot the ROC curve with colors
+```
+
+**Computing the AUC**
+
+```{r}
+auc <- performance(pred, "auc")
+```
+
+The `performance()` object above stores the **name** of the variable in `@y.name[[1]]` and the actual **AUC** in `@y.values[[1]]`. Note: the use of double brackets `[[ ]]` instead of single brackets `[ ]` and `@` instead of `$` to access values is because the `performance()` object is a **list** not a data frame. Lists use `[[ ]]` for indexing values and `@` for accessing elements in the list. Also, note that I rounded the AUC value to keep it short.
+
+```{r}
+auc.name <- auc@y.name[[1]] # Retrieve the AUC name from the AUC list
+auc.value <- round(auc@y.values[[1]], digits = 3) # Retrieve the AUC value
+paste(auc.name, "is", auc.value) # Display them together
+```
+
+# 5. Mutinomial Logistic Regression
+
+A multinomial Logistic model is similar to a binomial Logistic model, except that the categorical outcome variable has more than 2 possible values. For example, suppose that you are trying to predict the likelihood that a real estate client will buy either a rural, suburban or urban home. In this case, the dependent variable is categorical and has has 3 possible values. This model can be easily fitted using 2 binomial Logistic models, one for rural vs. suburban, and another for rural vs. urban. Notice that I indicated **rural** in both models, so that the log-odds effects measure the difference in effect between rural homes and each of the other two home locations. So, **rural** would be the **reference** value.
+
+First, you need to select a baseline or **reference** value (e.g., rural) and then create dummy variables for the two other categories (i.e., suburban and urban). You then would need to build a binomial Logistic model with `suburban = 1` for suburban homes, `0` if not, and then estimate the model. You could then do the same with `urban = 1` for urban homes, `0` if not. Each regression of these binomial Logistic regressions will give you the effect on the log-odds of someone buying a suburban or rural house respectively.
+
+This is a valid approach, but since you fit 2 separate models you will get two separate fit statistics for each of the models. In addition, there are other problems associated with splitting the data this way. The multinomial Logistic model estimates the two binomial models together as a single model (or more binomial models for multiple categories) and give you one set of fit statistics for the whole model.
+
+More generally, a multinomial model is one in which the outcome variable has `K` possible categorical values. In our example above `K = 3`. More generally, a multinomial Logistic model fits logistic regression composed of `K - 1` binomial Logistic models, but estimated together as a single model. There are R packages and functions that will estimate all `K - 1` models jointly. Some popular ones are:
+
+`multinom(){nnet}`, `mlogit{mlogit}`; and `vglm{VGAM}`. I use the `vglm()` (Vector Generalized Linear Model) function in the `{VGAM}` (Vector Generalized and Additive Models) package in the examples below. This function runs multinomial Logistic and other categorical outcome regressions.
+
+The model is fitted with the `Womenlf` (it's women-el-f, not one-f) data set in the `{car}` packages, which contains women labor force statistics.
+
+```{r}
+library(VGAM) # Contains the vglm() function
+library(car) # Contains the Womenlf (Women lf or Labor Force) data set
+head(Womenlf) # Take a quick look at a few records
+```
+
+You can learn more about the Womenlf data set here:
+
+```{r}
+#| eval: false
+
+? Womenlf # Use this command to explore the data set
+```
+
+Let's fit a model for labor participation (fulltime, not.work, parttime), based on husband's income in thousands and presence of children in the household (absence, presence). First, let's inspect the levels of the outcome variable `partic`.
+
+```{r}
+levels(Womenlf$partic)
+```
+
+-   The levels in `$partic` are: `fulltime`, `not.work`, `parttime`
+-   `fulltime` is the refLevel (first alphabetically), but we can change this
+-   The effect for `not.work` will be suffixed `:1` in the summary output
+-   The effect for `parttime` will be suffixed `:2` in the summary output
+
+```{r}
+vglm.fit <- vglm(partic ~ hincome + children, 
+                 family = multinomial(refLevel = 1), # "fulltime"
+                 data = Womenlf)
+summary(vglm.fit)
+```
+
+The summary output above is useful, but log-odds are difficult to interpret. It help to convert additive log-odds to multiplicative odds with the exp() function but we need to reconstruct the summary output, which can be done as follows:
+
+Let's first save the `summary()` object:
+
+```{r}
+vglm.sum <- summary(vglm.fit)
+```
+
+Then, extract coefficients and parameters from `vglm.sum`
+
+```{r}
+round(
+  cbind("Log Odds" = coef(vglm.fit), # or "Log Odds" = vglm.sum@coef3[,1] 
+        "Odds" = exp(coef(vglm.fit)), # or "Odds" = exp(vglm.sum@coef3[,1]) 
+        "Std. Error" = vglm.sum@coef3[ , 2],
+        "z-Value" = vglm.sum@coef3[ , 3],
+        "p-Value" = vglm.sum@coef3[ , 4]),
+      digits = 4)
+```
+
+**Interpretations:**
+
+The coefficients in the multinomial Logistic regression, just like in binomial Logit, show the effect of a 1 unit increase in the predictor variable on the log-odds of the dependent variable. But this is the difference:
+
+-   In binomial Logistic, the coefficient of a predictor represents, on average and holding everything else constant, the **log-odds change** in units of the outcome variable being 1 (compared to 0), when the predictor increases by 1. The **odds** effect represents the factor by which the respective odds change.
+
+-   In multinomial Logistic, the coefficient is about the log-odds of the response variable being in that category, compared to the reference category (i.e., the response variable left out of the one specified with the `refLevel =` attribute)
+
+Notice in the output above that each variable has 2 values. Since we have 3 categories in the response variable and the first one was left out as the reference variable, the first coefficient is for the log-odds of the second response category `not.work`; and the second one is for the third response category `parttime`.
+
+`hincome:1` - on average and holding everything else constant, when the husband's income goes up by `$1K`, the log-odds of `not working`, go up by 0.097, compared to working `full time`, The odds go up 1.102 times.
+
+`hincome:2` - On average and holding everything else constant, when the husband's income goes up by \$1K, the log-odds of working `part time`, go up by 0.104. The odds go up 1.1097 times, compared to working `full time`.
+
+`childrenpresent:1` - on average and holding everything else constant, when there are children present in the family, compared to no children, the log-odds of `not working`, go up by 2.559, compared to working `full time`, The odds go up 12.917 times.
+
+`childrenpresent:2` - on average and holding everything else constant, when there are children present in the family, compared to no children, the log-odds of working `part time`, go up by 2.580, compared to working `full time`, The odds go up 13.198 times.
+
+**Fit Statistics**
+
+You can compute and display the deviance statistics as follows:
+
+```{r}
+res.dev <- paste("2LL Residual Deviance", 
+                 round(vglm.sum@criterion$deviance, digits = 2),
+                 "on", vglm.sum@df.residual, "degrees of freedom")
+cat(res.dev, sep = "\n") # cat() with "\n" suppresses the annoying [1] index
+```
+
+Or display the deviance statistics this way:
+
+```{r}
+c("Log-Likelihood" = logLik(vglm.fit),
+  "2LL" = -2 * logLik(vglm.fit),
+  "Deviance" = deviance(vglm.fit), 
+  "AIC" = AIC(vglm.fit)) # Akaike Information Criterion
+```
+
+Fit Statistics are similar to binomial Logistic with `glm().`Notice that: the `2LL` is 2 times the negative log-likelihood; `2LL` and `Deviance` are the same thing; and `AIC` is like an `adjusted 2LL` (the more complex the model the larger the AIC, compared to the 2LL). As with binomial Logistic and other GLM models, the 2LL deviance is difficult to interpret by itself, but you can compute the Null deviance and evaluate the proportion of deviance explained by the model relative to the Null model. The `vglm()` function does not report the null deviance, but it can be easily computed by fitting a null model:
+
+```{r}
+vglm.fit.null <- vglm(partic ~ 1, 
+                 family = multinomial(refLevel = 1),
+                 data = Womenlf)
+
+null.dev <- round(deviance(vglm.fit.null), digits = 2)
+model.dev <- round(deviance(vglm.fit), digits = 2)
+dev.explained <- round((null.dev - model.dev) / null.dev, digits = 2)
+
+c("Null Deviance" = null.dev,
+  "Model Deviance" = model.dev, 
+  "Deviance Explained" = dev.explained) # Similar to R-squared
+```
+
+**Predictions**
+
+Let's now find predicted values with the `predictvglm()` function (note: `newdata =` can be used to specify a test or new data set to predict if omitted or NULL the predictions are done on the training set).
+
+```{r}
+pred.log.odds = predictvglm(vglm.fit, 
+                            newdata = NULL, 
+                            se.fit = T)
+```
+
+Just like with the coefficients, we get 2 predictions for each observation, one for the log-odds of being in the second category (compared to the first) and the other for the third category (compared to the first). Also, the `predictvglm()` object `pred.log.odds` has a few attributes.
+
+```{r}
+log.odds <- pred.log.odds$fitted.values # Predicted values, log odds
+se <- pred.log.odds$se.fit # Standard errors
+pred.odds <- exp(pred.log.odds$fitted.values) # Predicted odds
+pred.prob <- pred.odds/(1+pred.odds) # Predicted probabilities
+```
+
+Let's display all the results together:
+
+```{r}
+pred.all <- round(
+                  cbind(log.odds, 
+                        se, 
+                        pred.odds, 
+                        pred.prob),
+                  digits = 3)
+colnames(pred.all) <- c("LogOdds2","LogOdds3", # Need to add column names
+                        "Std.Err2", "StdErr3",
+                        "Odds2", "Odds3", 
+                        "Prob2", "Prob3")
+```
+
+Let's list the first 10 rows:
+
+```{r}
+pred.all[1:10, ] 
+```
+
+# 6. Linear Discriminant Analysis (LDA)
+
+Let's take a look at a few attributes of the **Auto** data set in the **{ISLR}** library.
+
+```{r}
+library(ISLR)
+options(scipen = 4)
+
+plot(Auto$mpg ~ Auto$weight, 
+     xlab = "Vehicle.Weight", 
+     ylab = "Gas.Mileage", 
+     col = Auto$origin,
+     pch = c(1, 2, 3))
+legend(x = "top", 
+       c("American", "European", "Japanese"), 
+       col = c("black", "red", "green"),  
+       pch = c(1, 2, 3),  
+       bty = "n")
+```
+
+The diagram above suggests that if we know the weight and gas mileage of a vehicle, we may be able to predict the likelihood that the vehicle is American, European or Japanese. Let's first try a simple Multinomial LDA model:
+
+```{r}
+library(MASS) # Contains the lda() function
+auto.fit.lda = lda(origin ~ weight + mpg, 
+                   data = Auto)
+auto.fit.lda$prior # Check out the prior probabilities for each class
+auto.lda.pred <- predict(auto.fit.lda)
+```
+
+Let's look at the first 10 posterior probabilities for each class
+
+```{r}
+round(auto.lda.pred$posterior[1:10, ], digits = 4)
+```
+
+Let's now analyze a more complex data set with a binomial outcome. I use the **Heart.csv** data set provided by the ISLR package authors:
+
+```{r}
+heart <- read.table("Heart.csv", 
+                    sep = ",", 
+                    head = T)
+head(heart)
+```
+
+**Note:** I used the same `Heart.csv` data file I used above for Logistic regression. I re-read here it for easy reference.
+
+```{r}
+heart <- read.table("Heart.csv",
+                    sep = ",",
+                    head = T,
+                    stringsAsFactors = T)  
+head(heart)
+```
+
+Let's use cross-validation to evaluate the accuracy of the model, so we start by computing index vectors for the train and test sub-samples:
+
+```{r}
+set.seed(1)
+tr.size <- 0.7 # 70% train sub-sample
+train <- sample(1:nrow(heart), 
+                tr.size * nrow(heart))
+test <- seq(1:nrow(heart))[-train] # Any number not in the train vector
+```
+
+Let's now fit the model on the train data -- i.e., train the LDA model
+
+```{r}
+heart.fit.lda <- lda(chd ~ ., data = heart[train, ])
+heart.fit.lda # Check out the results
+```
+
+**Note:** the `$scaling` attribute of this `lda()` object, `heart.fit.lda$scaling` contains the linear discriminant function coefficients displayed above. Note that these are NOT regression coefficients, but rather the equation of the linear discriminant function, which separates the outcome classifications into one category or another.
+
+**Another note:** you can also use `*heart.fit.lda$prior` to get the prior probabilities or proportions of the response variable.
+
+You can also get a summary, but it is not very useful
+
+```{r}
+summary(heart.fit.lda)
+plot(heart.fit.lda) # Outcome distribution for each outcom class
+```
+
+Let's now extract the test sub-sample
+
+```{r}
+heart.test <- heart[test, ] # Test sub-sample
+```
+
+Now let's make predictions with the train model and the test sub-sample
+
+```{r}
+heart.lda.pred <- predict(heart.fit.lda, heart.test)
+heart.lda.pred$posterior[1:10, ] # Inspect the respective probabilities
+heart.lda.pred$class # Inspect the prdicted classifications for prob > 0.5
+```
+
+**Note:** the display above shows the prob of `chd = 0` and of `chd = 1`. That's why we see 2 columns. The default classification threshold is `prob > 0.5`. That is, any observation with a `prob(chd = 1 > 0.5)` will be predicted as 1, 0 otherwise. For most of what we do below, we only need the second column for `prob(chd = 1 > 0.5)`:
+
+```{r}
+heart.lda.pred$posterior[1:10, 2] # Take a look
+```
+
+**LDA Cross-Validated Confusion Matrix**
+
+Now that we have the trained model and some prediction objects, let's use them to construct the confusion matrix.
+
+```{r}
+conf.mat <- table("Predicted" = heart.lda.pred$class, 
+                  "Actual" = heart.test$chd) 
+conf.mat
+```
+
+As we did before, let's compute accuracy the metrics and then add column and row totals and labels (as I mentioned earlier, if we name the cross-table conf.mat, then all the scripts we used earlier for the Logistic regression confusion matrix will work here without change)
+
+```{r}
+TruN <- conf.mat[1, 1]
+TruP <- conf.mat[2, 2]
+FalN <- conf.mat[1, 2]
+FalP <- conf.mat[2, 1]
+
+TotN <- TruN + FalP
+TotP <- TruP + FalN
+TotNpr <- TruN + FalN
+TotPpr <- TruP + FalP
+Tot <- TotN + TotP
+```
+
+Quick check of the computations
+
+```{r}
+cbind(TruN, TruP, FalN, FalP, 
+      TotN, TotP, 
+      TotNpr, TotPpr, 
+      Tot)
+```
+
+Let's add totals and labels and display the confusion matrix. In the Confusion Matrix example above we used the `addmargins()` function, which works here too, but I'm adding the margin totals manually below just to illustrate another method.
+
+```{r}
+conf.mat.totals <- cbind(conf.mat, 
+                         c(TotNpr, TotPpr))
+conf.mat.totals <- rbind(conf.mat.totals, 
+                         c(TotN, TotP, Tot))
+colnames(conf.mat.totals) <- 
+  rownames(conf.mat.totals) <- 
+     c("No", "Yes", "Total") 
+conf.mat.totals # Display the confusion matrix
+```
+
+Now let's use these metrics to compute accuracy and error rates
+
+```{r}
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+Sensitivity <- TruP / TotP # Proportion of correct positives
+Specificity <- TruN / TotN # Proportion of correct negatives
+FalP.Rate <- 1 - Specificity # Proportion of false positives
+```
+
+Let's combine them into one vector and display the results
+
+```{r}
+lda.rates.50 <- c(Accuracy.Rate, Error.Rate, 
+                  Sensitivity, Specificity, FalP.Rate)
+names(lda.rates.50) <- c("Accuracy", "Rate",  # Add column names
+                         "Sensitivity", "Specificity", "False Pos")
+lda.rates.50
+```
+
+We can do the same with other values of lambda, say 0.60. We can use the data in the probability outcome vector we computed earlier to change the classification threshold to, say `prob(chd = 1 > 0.60)`. Notice that we use the `heart.lda.pred$posterior` vector we computed before. The probability outcomes did not change. We are only changing the threshold for when to classify an outcome as a 0 or a 1.
+
+```{r}
+lambda <- 0.6
+heart.lda.class.60 <- ifelse(heart.lda.pred$posterior[ , 2] > lambda, 
+                             1, 0)
+heart.lda.class.60 [1:20] # Take a look at a few revised classifications
+```
+
+Now, let's build the confusion matrix
+
+```{r}
+conf.mat <- table(heart.lda.class.60, heart.test$chd) 
+
+TruN <- conf.mat[1, 1]
+TruP <- conf.mat[2, 2]
+FalN <- conf.mat[1, 2]
+FalP <- conf.mat[2, 1]
+
+TotN <- TruN + FalP
+TotP <- TruP + FalN 
+TotNpr <- TruN + FalN
+TotPpr <- TruP + FalP
+Tot <- TotN + TotP
+
+cbind(TruN, TruP, FalN, FalP, TotN, TotP, TotNpr, TotPpr, Tot)
+```
+
+Let's add totals and labels and display the confusion matrix
+
+```{r}
+conf.mat.totals <- cbind(conf.mat, 
+                         c(TotNpr, TotPpr))
+conf.mat.totals <- rbind(conf.mat.totals, 
+                         c(TotN, TotP, Tot))
+colnames(conf.mat.totals) <- 
+  rownames(conf.mat.totals) <- 
+     c("No", "Yes", "Total") 
+conf.mat.totals # Display the confusion matrix
+```
+
+Now, the accuracy statistics:
+
+```{r}
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+Sensitivity <- TruP / TotP # Proportion of correct positives
+Specificity <- TruN / TotN # Proportion of correct negatives
+FalP.Rate <- 1 - Specificity # False Positive Rate
+
+lda.rates.60 <- c(Accuracy.Rate, Error.Rate, 
+                  Sensitivity, Specificity, FalP.Rate)
+names(lda.rates.60) <- c("Accuracy", "Error", 
+                         "Sensitivity", "Specificity", "False Pos")
+round(lda.rates.60, digits = 3)
+```
+
+Now, let's display the accuracy statistics with both thresholds together, so that we can compare results.
+
+```{r}
+round(rbind(lda.rates.50, lda.rates.60), digits = 3)
+```
+
+Let's include the Binary Logistic accuracy metrics
+
+```{r}
+round(rbind(logit.rates.50, logit.rates.60, 
+            lda.rates.50, lda.rates.60),
+      digits = 3)
+```
+
+Which method is best overall? Which method is better for predicting positives? And for negatives? I think you have all the tools, information and wisdom to answer these questions now.
+
+## ROC Curve and LDA
+
+We can construct the ROC curve for the LDA model in the exact same way we did for the Logistic regression model.
+
+```{r}
+library(ROCR)
+pred <- prediction(heart.lda.pred$posterior[ , 2], 
+                   heart$chd[test]) 
+perf <- performance(pred,"tpr","fpr")
+
+plot(perf, colorize=TRUE)
+auc <- performance(pred,"auc") # Compute the AUC
+c(auc@y.name[[1]], auc@y.values[[1]]) # Display the AUC
+```
+
+# 7. Quadratic Discriminant Analysis (QDA)
+
+The syntax for **QDA** identical to **LDA**, except that we use the `qda()` function instead of `lda()`. Both functions are in the `{MASS}` library. LDA and QDA fulfill similar goals and work in similar ways, except that LDA uses linear discriminant functions, whereas QDA uses quadratic discriminant functions. Which one is better? It all depends on the data and how it is distributed across the predictors. The best thing to do is to try both and evaluate them with cross-validation testing, as illustrated below.
+
+```{r}
+library(MASS) # Contains the qda(){MASS} function
+heart <- read.table("Heart.csv", 
+                    sep = ",", 
+                    head = T)
+```
+
+Compute index vectors for train and test sub-samples, as shown for LDA above. Then fit the QDA model using the **{MASS}qda()** function.
+
+```{r}
+heart.fit.qda <- qda(chd ~ ., 
+                     data = heart[train,])
+```
+
+Inspect the results
+
+```{r}
+heart.fit.qda # See the linear discriminant function
+summary(heart.fit.qda) # Not very useful
+```
+
+Let's extract the test sub-sample and make probability predictions
+
+```{r}
+heart.test <- heart[test, ]
+heart.qda.pred <- predict(heart.fit.qda, heart.test)
+```
+
+Now, let's take a look at some of the attributes of the **heart.qda.pred** object
+
+```{r}
+heart.qda.pred$class # Inspect the classifications
+```
+
+Check out the first 10 records of the posterior probabilities `> 0.5` that `chd` is 0 and 1. Or just the probabilities for `chd = 1` (second column only)
+
+```{r}
+heart.qda.pred$posterior[1:10, ] # Both probabilities
+heart.qda.pred$posterior[1:10, 2] # Just prob(chd = 1)
+```
+
+Notice how any prediction probability of 0.5 for chd = 1 got a predicted classification of 1, and 0 otherwise.
+
+Now let's work on the confusion matrix
+
+```{r}
+conf.mat <- table("Predicted" = heart.qda.pred$class, 
+                  "Actual" = heart$chd[test]) 
+
+TruN <- conf.mat[1, 1]
+TruP <- conf.mat[2, 2]
+FalN <- conf.mat[1, 2]
+FalP <- conf.mat[2, 1]
+
+TotN <- TruN + FalP
+TotP <- TruP + FalN 
+TotNpr <- TruN + FalN
+TotPpr <- TruP + FalP
+Tot <- TotN + TotP
+
+cbind(TruN, TruP, FalN, FalP, TotN, TotP, TotNpr, TotPpr, Tot)
+```
+
+Let's add totals and labels and display the confusion matrix
+
+```{r}
+conf.mat.totals <- cbind(conf.mat, 
+                         c(TotNpr, TotPpr))
+conf.mat.totals <- rbind(conf.mat.totals, 
+                         c(TotN, TotP, Tot))
+colnames(conf.mat.totals) <- 
+  rownames(conf.mat.totals) <- 
+     c("No", "Yes", "Total") 
+conf.mat.totals # Display the confusion matrix
+```
+
+Now, the accuracy statistics:
+
+```{r}
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+Sensitivity <- TruP / TotP # Proportion of correct positives
+Specificity <- TruN / TotN # Proportion of correct negatives
+FalP.Rate <- 1 - Specificity # False Positive Rate
+
+qda.rates.50 <- c(Accuracy.Rate, Error.Rate, 
+                  Sensitivity, Specificity, FalP.Rate)
+names(qda.rates.50) <- c("Accuracy Rate", "Error Rate", 
+                         "Sensitivity", "Specificity", "False Positives")
+round(rbind(qda.rates.50), digits = 3)
+```
+
+As we did with LDA, we can use the data in the QDA probability outcome vector we computed earlier to change the classification threshold to, say `prob(chd = 1 > 0.60)`.
+
+```{r}
+lambda <- 0.6
+heart.qda.class.60 <- ifelse(heart.qda.pred$posterior[, 2] > lambda, 
+                             1, 0)
+conf.mat <- table(heart.qda.class.60, heart.test$chd) 
+
+TruN <- conf.mat[1, 1]
+TruP <- conf.mat[2, 2]
+FalN <- conf.mat[1, 2]
+FalP <- conf.mat[2, 1]
+
+TotN <- TruN + FalP
+TotP <- TruP + FalN 
+TotNpr <- TruN + FalN
+TotPpr <- TruP + FalP
+Tot <- TotN + TotP
+
+cbind(TruN, TruP, FalN, FalP, TotN, TotP, TotNpr, TotPpr, Tot)
+```
+
+Let's add totals and labels and display the confusion matrix
+
+```{r}
+conf.mat.totals <- cbind(conf.mat, 
+                         c(TotNpr, TotPpr))
+conf.mat.totals <- rbind(conf.mat.totals, 
+                         c(TotN, TotP, Tot))
+colnames(conf.mat.totals) <- 
+  rownames(conf.mat.totals) <- 
+     c("No", "Yes", "Total") 
+conf.mat.totals # Display the confusion matrix
+```
+
+Now, the accuracy statistics:
+
+```{r}
+Accuracy.Rate <- (TruN + TruP) / Tot
+Error.Rate <- (FalN + FalP) / Tot
+Sensitivity <- TruP / TotP # Proportion of correct positives
+Specificity <- TruN / TotN # Proportion of correct negatives
+FalP.Rate <- 1 - Specificity # False Positive Rate
+
+qda.rates.60 <- c(Accuracy.Rate, Error.Rate, 
+                  Sensitivity, Specificity, FalP.Rate)
+names(qda.rates.60) <- c("Accuracy", "Error", 
+                         "Sensitivity", "Specificity", "False Pos")
+round(qda.rates.60, digits = 3)
+```
+
+Now, let's display the accuracy statistics for borh, LDA and QDA, with both thresholds together, 0.5 and 0.6, so that we can compare results.
+
+Let's include the Binary Logistic accuracy metrics
+
+```{r}
+round(rbind(logit.rates.50, logit.rates.60, 
+            lda.rates.50, lda.rates.60,
+            qda.rates.50, qda.rates.60),
+      digits = 3)
+```
+
+Which method is best overall? Which method is better for predicting positives? And for negatives? I think you have all the tools, information and wisdom to answer these questions now.

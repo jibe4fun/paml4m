@@ -1,0 +1,2210 @@
+---
+title: "Appendix R1: Introduction to R"
+subtitle: "Introduction to R"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+
+fig-width: 10
+fig-height: 6
+fontsize: 10pt
+code-overflow: wrap
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This quarto file contains a basic introduction to R, R Studio, R Markdown and Quarto. If you have no prior experience with R, this could be a good place to start, as it covers most of the necessary R functions, objects and commands to build basic models. For deeper content on R, please refer to some of the books noted below. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+---
+
+# Introduction
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+## Working Directory and Project Setup
+
+It is **very important** that you tell R what your work directory is. I **STRONGLY** recommend creating one working folder (e.g., `c:\PredictivAnalytics\R`) in your computer for all this work in this class and keep all your scripts and data files in that directory. R works better when all the scripts and data files for a project are in a single directory and this will make your life much easier. As you become more experienced you will learn to organize your work in folders, but to start with, it is simpler to have everything in one folder.
+
+**IMPORTANT:** BY FAR, THE MOST COMMON SOURCE OF PROBLEMS using R Studio is the IMPROPER SETUP of the working folders and project environment. Please ensure that you follow these instructions. It will most definitely save you time later.
+
+### Project Directory Setup
+
+While setting a working directory is useful, it is even better to set a project directory. When you create a project in R Studio and then open it, your working directory will be set automatically. In addition, all the data files and variables you were working with in your last session will open too. This is a very convenient feature of R Studio. In my opinion, setting a project is a MUST when working with R and it makes it very easy to switch from one project to another. It will really make your R Studio work very efficient.
+
+To create a project for this class, select:
+
+File -\> New Project -\> Existing Directory.
+
+Then browse and navigate to your working folder and click on Create Project. That's it. Now you can open or switch projects from the scrollable list in the upper right corner of R Studio.
+
+### Working Directory
+
+Once you setup your project as suggested above, you don't need to worry about defining or activating your working directory. When you open a project, the working environment will be restored. However, if you wish to define a different work directory (not recommended), you can do so with this command:
+
+```{r}
+#| eval: false
+
+setwd("C:/PredictiveAnalytics/R") # But use the actual work folder you want to use
+```
+
+As you work with many other projects, you will probably have several working directories and you may be switching directories from time to time. To see, which is the current working directory in your R Studio environment enter:
+
+```{r}
+#| eval: false
+
+getwd()
+```
+
+### Packages
+
+R has tons of packages available for download from the Comprehensive R Archive Network (CRAN). You can find out more about CRAN and their available resources at: [https://cran.r-project.org/](https://cran.r-project.org/.)
+
+Before you can use a package, you need to **install** it and then **load** into your work environment. You install a package only once (or when you want to update to a new version). Once installed in your computer, you don't need to install it again.
+
+A package contains one or more libraries, each containing one or more functions and data sets ready for you to use. In contrast to the installation, you need to load the particular library you want to use after you start R. Once the library is load it, it will remain loaded until you unload it yourself or until you quit your R session.
+
+To install packages and load libraries, please open the JAE_Packages.R, go to the command that has the `install.packages()` command for the package you wish to install and hit **Ctrl-Enter**.
+
+To load a library from a package go to the command that has the `library()` or `require()` command for the package or library you want to load and hit **Ctrl-Enter**.
+
+### Useful Books
+
+I recommend the following books:
+
+#### Introduction to Statistical Learning with R (ISLR)
+
+This is an excellent book written by some of the top scholars in **statistical learning**. The book also comes with its own **{ISLR}** package and datasets, some of which I use in the examples in this book. Please install this package so that you get access to the included data samples.
+
+For a **free PDF copy** of this book and for further information on the ISLR book, their datasets, R code, and other resources see: <https://www.statlearning.com/>.
+
+To load access the data sets in the **{ISLR}** library, just load the library:
+
+```{r}
+#| eval: false
+
+library(ISLR)
+```
+
+Please note that the authors have also published the **Python** version of their book with Python code examples and exercises, which are available on the same web site above.
+
+To read a data sets from this (or other) web sites, for example use:
+
+```{r}
+#| eval: false
+
+MyData <- read.table("https://www.statlearning.com/s/Credit.csv",
+                     sep = ",", 
+                     head = T)
+```
+
+-   csv denotes a `"comma-separated"` file
+-   `sep = ","` denotes that the data elements are separated by a comma (some files are separated by semi-colons, tabs, etc.)
+-   `head = T` or head=TRUE mean that the first row of the table contains column names
+-   `row.names = 1` means that the first column does not contain data, but row names to identify the observations.
+
+You can also use the `read.csv()` function, but the defaults are `sep = ","` and `head = T`, so you don't need to specify these parameters:
+
+```{r}
+#| eval: false
+
+MyData <- read.csv("https://www.statlearning.com/s/Credit.csv")
+```
+
+more generally, use the following to read any data set from the web (use the parameter `row.names = 1` only if the first column contains row ID's or row names, not actual data):
+
+```{r}
+#| eval: false
+
+MyData <- read.table("web-URL/DataFileName.data", 
+                     sep = ",", 
+                     head = T, 
+                     row.names = 1)
+```
+
+To list the data sets in all active (loaded) libraries enter:
+
+```{r}
+#| eval: false
+
+data()
+```
+
+To list the data sets contained in a particular package enter:
+
+```{r}
+#| eval: false
+
+data(package = "ISLR")
+```
+
+#### Applied Predictive Modeling
+
+This book is an excellent book to learn **predictive modeling** with R. The book does a comprehensive job at describing how to use the **{caret}** packge, which was developed by one of the book authors, Max Kuhn. The **{caret}** package is excellent because it does not fit models itself, but makes calls to all the main machine learning and predictive modeling libraries out there. With a single command `train()` you can fit just about any model by changing one parameter. For example, using the parameter `method =` you can quickly change a model from an OLS regression, to a tree, a random forest, or any other method, and with the `trainControl()` function you can quickly change the cross-validation method used by the model. This is a book I would highly recommend after reading the present book, to become more producting and sophisticated writing predictive models.
+
+See:
+
+<http://appliedpredictivemodeling.com/>\
+<https://rdrr.io/cran/caret/man/models.html>
+
+#### R for Everyone, Second Edition
+
+This is a book by Jared Lander, which is great for anyone who has never used R and wants to get up to speed quickly. It start with the basics of R installations, R Studio, packages, data structures, etc., and it ends with a nice coverage of basic statistical models. It has a nice video tutorial with 16+ hours of instruction, but it is a bit pricey.
+
+See: <https://www.jaredlander.com/r-for-everyone/>
+
+# 1. R Introduction
+
+## 1.1 R Overview
+
+**Notes:**
+
+1.  A comment in a plain R script starts with a `#` which tells R that it is not an actual R command, but just some documentation text.
+
+2.  To run an R command, you can either type it below in the R console, or select the line in the script and press Ctrl-Enter.
+
+R is a dialect of S. S was created in the Bell Labs by John Chambers and his team as an object oriented language to do data analysis, statistical modeling, simulation and graphics.
+
+R is a dialect of S. In other words, R is an improved version of R with very flexible and powerful capabilities to model problems and analyze data. R is different than S, but it was conceptualized as an improvement to S, so most S code will run fine in R.
+
+The name R comes from their two creators Ross Ihaka and Robert Gentleman (what a great name) from the University of Auckland, New Zealand.
+
+R is an **open source**, **object-oriented** software programming language written specifically for data analysis:
+
+What is **open source** software? It is software developed by a community of volunteers, who also maintain and update the software and all related packages and datasets. Not all open source software is free of charge, but R is free. The R community material is available at the CRAN site.
+
+What is **CRAN**? It is the "Comprehensive R Archive Network" and it serves as the central repository of R software, documentation and other R resources.
+
+See: <https://cran.r-project.org/>
+
+What is **object-oriented**? Most modern software languages are object-oriented. All it means is that EVERYTHING you do in R gets stored in a container called an object. An object has 2 things: properties and methods. Properties are the data contained in the object; Methods are routines and functions that can be used to work with the object. They are all conveniently stored inside the object.
+
+For example, in this command we use the `lm()` function to fit a regression model:
+
+```{r}
+lm.fit <- lm(mpg ~ cyl + disp + hp + wt, 
+             data = mtcars) 
+```
+
+`lm()` is a linear model (regression) function available in the **{stats}** package, which loads automatically when you start R. It will fit a predictive model to predict **mpg** (miles per gallon) using cylinders, displacement, horsepower and weight as predictors. The model is fit using the **mtcars** data set available in the **{dataset}** package, which also loads automatically when you start R. The results of this regression are stored in an **lm() object** (i.e., the function that created it), which we have chosen to name **lm.fit**. We could have used any name for the object.
+
+When you run the command above you see nothing, but the results of the model are stored in the object **lm.fit**. For example, you can see the summary results with the `summary()` function:
+
+```{r}
+summary(lm.fit)
+```
+
+For further information on R see:
+
+<https://www.r-project.org/about.html>; and <https://en.wikipedia.org/wiki/R_%28programming_language%29>
+
+For frequently asked questions on R, see:
+
+<https://cran.r-project.org/doc/FAQ/R-FAQ.html>
+
+To get started with R, you can use this documentation from CRAN
+
+<https://cran.r-project.org/doc/contrib/Paradis-rdebuts_en.pdf>\
+<https://cran.r-project.org/doc/manuals/R-intro.pdf>
+
+You can install R by downloading it from a "mirror" site. The R installation files are posted in several similar sites. You can pick any mirror site, but it is recommended to pick one that is in close proximity to your location. In my experience, it is best to pick a mirror site that is more reliable. The best mirror site in the USA (Berkeley) seems to work well.
+
+<https://www.r-project.org/>
+
+**R Studio** has lots of packages and resources to help you work with R. Here are a couple of useful R Studio resources:
+
+<https://www.rstudio.com/resources/> for R Studio Resources\
+<https://www.rstudio.com/resources/cheatsheets/> for useful cheat sheets
+
+## 1.2 R Packages
+
+The power of R rests on the thousands of packages already written for R, which are publicly available at CRAN. We discuss how to install packages and load their respective libraries a bit later. To view all R packages, see:
+
+<https://cran.r-project.org/web/packages/available_packages_by_name.html>
+
+The packages necessary to follow this book are in in the R script **PAML4M_1R_Packages.R**. Please open this script and run all the installation commands `install.packages("packagename")`. This will install all the packages and their respective libraries, necessary to run the R scripts for this book. Also, pay special attention to the notes about RTools, as you may need to download and install a version of RTools to match your R version from the CRAN repository.
+
+## 1.3 R Studio Overview
+
+You can run R and write code and develop R scripts directly in the R console. However, like with most software languages, it is best to use an **"Integrated Development Environment" (IDE)**. An IDE gives you a nice environment and tools to make it easier to develop programs. Without question the IDE of choice for R is R Studio, which is also open source and free. Chances are, you are using R Studio right now.
+
+R Studio provides 4 different windows:
+
+1.  Top-Left: Script window - this is where you write, save and open your R scripts
+
+2.  Bottom-Left: R Console - this is where you can type R commands directly and where R displays results and messages when you run commands. If you were not using R Studio, you would only see this R Console.
+
+3.  Top-Right: 3 tabs: (1) Environment window - this is where you can see any R objects created or opened (e.g., variables, data tables, etc.). Notice that there is also a History tab where you can review all the R commands you have run since you started R. This is a great tool when you are trying various commands in the R Console and you want to re-trace your steps or copy-paste a batch of commands from the History to a script; (2) History -- R Studio keeps track of all the commands you issue from the console. You can highlight and group of commands from the history and paste them into the active script; (3) Connections -- we will not use this tab in this class, but this section helps you setup and access connections to data sources.
+
+4.  Bottom-Right: Model explorer - this is where you can view: files in the working directory; plots generated by R commands; packages available and installed; help displays, etc.
+
+**Special R Studio Packages**: most R packages are designed to manipulate and/or analyze data. But R Studio has a number of very useful packages you can load to make your development environment more productive. These include:
+
+-   R Markdown: a package to create documents with marked up text, R code, R output, graphs, etc.
+
+-   Quarto: similar to R Markdown. Quarto is bundled with RStudio v2022.07.1 and higher, so there is no need to install it or update it. Quarto is used to create dynamic content with R, Python, Julia and Observable languages. Using R Markdown or Quarto is a matter of preference. Quarto is preferred if you plan to use both R and Python. It is also superior to R Markdown for formatting documents and book. For most practical purposes, R Markdown works well and will continue to be supported by R Studio for the foreseeable future.
+
+-   knitr: a companion to R Markdown, which knits your markdown files into HTML, Word or PDF documents.
+
+-   pandoc: an open source document converter. knitr does the knitting of text with R code and R output. pandoc does the conversion of the output to the desired format (e.g., HTML, Word, PDF, etc.)
+
+-   Shiny: a package to build interactive R applications that run on the web.
+
+-   ggplot2: one of the most popular and powerful packages to visualize data
+
+-   dplyr: powerful library to manipulate data
+
+-   tidyverse: is not a package, but a collection of other packages designed for data science work. Installing {tidiverse} will install packages like {ggplot2}, \[dplyr\], etc. There is a companion book by master trainers, Wickham and Grolemund.
+
+<https://r4ds.had.co.nz/>
+
+For a complete description of available R Studio Packages, see:
+
+[https://www.rstudio.com/products/rpackages](https://r4ds.had.co.nz/)
+
+# 2. R For Analytics
+
+## 2.1 This Script
+
+This document was generated created in Quarto, which is a great tool to program analytics work in R and generate reports by **knitting** the text, R code and R output in the markdown file into a Word, PDF, HTML, PowerPoint or some other file formats. I discuss R Markdown and Quarto further towards the end of this file. For now, note that R Markdown and Quarto contain 3 main types of sections:
+
+-   The YAML -- YAMl Ain't Markdown Language (a recursive acronym). This is the header of the file where you place the title, sub-title, author, etc., along with the file format to knit to and whether you want a table of contents generated.
+
+-   The markdown section -- This is the main text section of an R Markdown or Quarto file, where you type narratives and other information.
+
+-   Code Cells -- are sections contained between \`\`\`{r} and \`\`\` containing the R code to be executed. You can control whether to display just the output or results from your R scripts and/or the R code that generated it.
+
+More information on R Markdown at the end of this file.
+
+## 2.2 General Information on R and R Studio
+
+If you need help with R or any R related tools, you can always Google, of course. But there is a Google driven search engine customized for R-related searches. This will filter out search results that are unrelated to R. Here it is. Try it:
+
+<http://rseek.org>
+
+To search and use open source R code created by others, signup for GitHub then search for R software code - you can copy all you want, it's open source!!
+
+<https://github.com/>
+
+### A Few Ways to Run R Commands
+
+1.  From the R Console below, just type the command and press Enter
+
+2.  From the script, go to any script line and press Ctrl + Enter (PC) or Cmd + Enter (Mac)
+
+3.  You can run entire code cells by pressing the play icon on the top right
+
+4.  If you've been working in R for a while without saving your work in a script, you can go to the History tab on the top right window of R Studio. You can highlight any command or group of commands and either click "To Console" to run the commands, or "To Source" to copy the commands to the active script.
+
+### Getting Help
+
+In RStudio, the help system is located in the "Help" tab
+
+You can request help for a keyword with ??"<keyword>", e.g.:
+
+```{r}
+#| eval: false
+
+??"regression"
+```
+
+Use ? to get help for a given command, e.g.:
+
+```{r}
+#| eval: false
+
+?lm() # Help on the lm() function to build linear models
+```
+
+If you need help on a particular function contained in a specific library, you need to load that library first, and then request help. For example, to get help on the `ggplot()` function you need to first load the `{ggplot2}` library:
+
+```{r}
+#| eval: false
+
+library(ggplot2)
+help(ggplot)
+```
+
+### Vignettes -- Important Documentation Supplements
+
+You will quickly learn that the R documentation on packages and functions can be cryptic and often incomplete. This documentation is written by package developers and they often include just the minimal information required to understand the package contents. More complete documentation and code examples are usually provided in additional documents called **"vignettes"**, which are supplementary and optional documentation for packages and functions. Some packages have vignettes and some do not. To find out the vignettes in your installed packages"
+
+```{r}
+#| eval: false
+
+browseVignettes()
+```
+
+To view the vignette associated with a particular package you installed, enter:
+
+```{r}
+#| eval: false
+
+browseVignettes("car") # Vignette for the package "car"
+```
+
+**VERY IMPORTANT: R is Case Sensitive !!!**
+
+Be sure to type upper or lower case as required For example `GetWD()` or `GETWD()` won't work!! You must type all commands and library names exactly as they are spelled -- e.g., `getwd()` will work!!
+
+### Comments
+
+The `#` sign is use to write non-executable comments. Don't rely on your memory and document your scripts heavily. You'll thank me for it later. You can comment like "I'm doing in this text", or you can simply add a sign after an R command to document that command. Everything in the command line after the `#` sign will be ignored during the command execution.
+
+This can be used to suppress the execution of an R command without deleting the command (i.e., commented out). For example:
+
+```{r}
+#| eval: false
+
+library(ISLR)
+```
+
+### Tutorials
+
+Datacamp -- an excellent source of high quality tutorials <https://www.datacamp.com/>\
+Datacamp R course: <https://www.datacamp.com/onboarding/learn?technology=r>\
+Datacamp Python course: <https://www.datacamp.com/onboarding/learn?technology=python>
+
+### Useful Web Sites
+
+<http://www.statmethods.net/>\
+<https://support.rstudio.com/hc/en-us>\
+<https://www.rdocumentation.org/>
+
+<https://medium.com/activewizards-machine-learning-company/top-20-r-libraries-for-data-science-in-2018-infographic-956f8419f883>
+
+## 2.3 Packages, Libraries and Views
+
+### Installing Packages
+
+#### Packages
+
+You can write lots of very powerful R Scripts, which is great, but the real power of R is in the thousands of R packages that others have already written, which are public and free.
+
+In the R documentation, it is customary to refer to packages with curly brackets, e.g., {base}. Functions or libraries contained in these packages are usually specified like this: `lm(){stats}`
+
+#### Base Package
+
+R comes with a pre-installed `{base}` package with lots of useful libraries
+
+```{r}
+#| eval: false
+
+help(package = "base")
+```
+
+All other packages need to be installed and activated.
+
+For available functions in the `{base}` package, see: <https://stat.ethz.ch/R-manual/R-devel/library/base/html/00Index.html>
+
+Similarly, R comes with several included data sets with the base installation, which are contained in the `{dataset}` package
+
+```{r}
+#| eval: false
+
+data(package = "datasets")
+library(help = "datasets")
+```
+
+Using a package is a 2 step process:
+
+1.  You first need to install the package. You only need to do this once and the package will remain installed until you uninstall it.
+
+From time to time, you may want to check to see if a package was updated. To update all packages you can use the update.packages() function.
+
+```{r}
+#| eval: false
+
+?update.packages 
+```
+
+To update a specific package type
+
+```{r}
+#| eval: false
+
+update.packages("packagename"). 
+```
+
+To view installed packages enter
+
+```{r}
+#| eval: false
+
+installed.packages()
+```
+
+2.  To use a library contained in a package, you need to load the library. It will remain open until you quit your R session. To load a library enter:
+
+```{r}
+#| eval: false
+
+library(libraryname) # or 
+require(libraryname)
+```
+
+Please note that some packages are installed automatically with the standard installation of R. There is no need to further install these packages. Also, some packages have dependencies (i.e., a given package needs other packages to work). In this case, all the dependent packages also get installed automatically.
+
+Review the help documentation for these functions:
+
+```{r}
+#| eval: false
+
+?install.packages()
+?remove.packages
+?update.packages
+?installed.packages()
+?library()
+?require()
+```
+
+You can also install packages by clicking on the Packages tab in the model viewer, clicking Install, and then following the steps. Similarly, you can also activate packages by checking the corresponding box in the Packages tab.
+
+You rarely need to uninstall packages, but if you wish to you can do it by unchecking the corresponding box in the Packages pane, or using the command:
+
+```{r}
+#| eval: false
+
+remove.packages()
+```
+
+You may sometimes need to deactivate or unload packages. You can do this by un-checking the corresponding box in the Packages pane or entering this command (this does not uninstall the package, it just unloads it from the work environment):
+
+```{r}
+#| eval: false
+
+detach("packages:PackageName")
+```
+
+#### Masking
+
+Important note about detaching packages. When you load one package, its functions may mask functions from other previously loaded packages, if they have the same function name. Most of the time, masking is not an issue, but occasionally there may be two functions with the same name in memory from different packages and one may mask the other. For example, the summarize() function is available in these two packages:
+
+```{r}
+#| eval: false
+
+require(plyr)
+require(Hmisc)
+```
+
+Each does something different. Check it out:
+
+```{r}
+#| eval: false
+
+?summarize
+```
+
+If you want to use `summarize()` from the **{plyr}** library, you can do it 2 ways: (1) detach the `{Hmisc}` library; or (2) indicate with double columns which function you wish to invoke:
+
+```{r}
+#| eval: false
+
+plyr::summarize()
+```
+
+To list all installed packages enter:
+
+```{r}
+#| eval: false
+
+installed.packages()
+```
+
+To view just the package names (column 1)
+
+```{r}
+#| eval: false
+
+installed.packages()[, 1]
+```
+
+Then get help on that package
+
+```{r}
+#| eval: false
+
+help(package = "base")
+```
+
+To view all available packages go to: <https://cran.r-project.org/web/packages/available_packages_by_name.html>
+
+To list available libraries enter:
+
+```{r}
+#| eval: false
+
+library()
+```
+
+To get documentation and a list of functions in a given package enter:
+
+```{r}
+#| eval: false
+
+library(help = PackageName)
+```
+
+To view the data sets available in all active packages enter:
+
+```{r}
+#| eval: false
+
+data()
+```
+
+To view the data sets in a particularly active package enter:
+
+```{r}
+#| eval: false
+
+data(package = "ISLR") # Example for the ISLR package
+```
+
+To load a specific data set in to memory
+
+```{r}
+#| eval: false
+
+data(dataSetName) 
+```
+
+To list the data sets in all packages available, enter:
+
+```{r}
+#| eval: false
+
+data(package = .packages(all.available = T))
+```
+
+#### Installing Views
+
+Views are collections of packages by function or type of analysis. You can view the various packages that are contained in a view at
+
+<http://cran.r-project.org/web/views/>
+
+Once you find a view and wish to install the packages it contains, installing the view automatically installs all the packages it contains, if not already installed. In oreder to install views, you first need to install and load the CRAN Task View "ctv" package:
+
+```{r}
+#| eval: false
+
+install.packages("ctv")
+library("ctv")
+```
+
+Then, for example, if you want to install the "Graphics" view, use:
+
+```{r}
+#| eval: false
+
+install.views("Graphics") # which will install all these packages:
+```
+
+<https://cran.r-project.org/web/views/Graphics.html>
+
+## 2.4 Reading Data Into R
+
+It is recommended to place all your data sources in your Project working folder.
+
+Many data sets, and most of the ones we will use in this class are contained in packages, so the data becomes available after you load the respective libraries. To view all data sets that either come with R or are available in loaded libraries enter:
+
+```{r}
+#| eval: false
+
+data()
+```
+
+To view the first 6 rows of a data set and the respective column name for example **mtcars** enter:
+
+```{r}
+head(mtcars) # Car and gas consumption data
+tail(mtcars) # Shows the last 6 rows in the table
+```
+
+You can also double-click on the data set in the environment viewer on the right to view the full table. You can also view the full table with the `fix()` function, which also allows you to edit the data:
+
+```{r}
+#| eval: false
+
+fix(mtcars)
+```
+
+While you can read multiple data sources into R (such as SPSS, SAS and Excel), I find it a lot easier to manipulate data sets in Excel and then save the datasheet as a **"comma separated values"** or **"CSV"** file. For example, many of the packages to read Excel data into R require current versions of Java or certain versions of Excel, whereas CSV files work universally.
+
+If you want to read a **CSV** file from your working directory, enter:
+
+```{r}
+heart <- read.table("Heart.csv", 
+                    header = T, 
+                    sep = ",")
+```
+
+First note that we are reading a file named **Heart.csv** with upper case H and storing in an R data fram object named **heart** with lower case h. You can name your objects any way you wish but these names are case sensitive.
+
+The `header = T` attribute specifies that the first row in the `.csv` file contains the column or variable names, which is the recommended way to do it. The `sep = ","` parameter specifies that the values are separated by commas.
+
+If the `.csv` file is not located in the working directory, you need to specify the directory using forward slashes `/` (don't use the backslashes `\`). Ex:
+
+```{r}
+#| eval: false
+
+mydata <- read.table("c:/PredictiveAnalytics/R/Auto.csv", 
+                     header = T, 
+                     sep = ",")
+```
+
+or simply move into your working directory and enter:
+
+```{r}
+AutoData <- read.table("Auto.csv", 
+                       header = T, 
+                       sep = ",")
+```
+
+You can also use the `read.csv()` function, which may simplify the syntax because the default parameters are `header = T` and `"sep = ","`, so you can omit these parameters:
+
+```{r}
+AutoData <- read.csv("Auto.csv")
+```
+
+By the way, you will notice that the R data frames will show up in the Enviroment tab on the top right window. You can double-click on the respective data frames to explore them. You can also explore the files with other R commands, like:
+
+```{r}
+#| eval: false
+
+head(AutoData) # To see the column headers and first few records
+names(AutoData) #To see the column (i.e., variable) names in the table
+```
+
+Also note that there are a number of R packages you can use to read files from popular programs like Excel, MS Access, SPSS, SAS, etc. These are a few:
+
+```{r}
+#| eval: false
+
+install.packages("xlsx") # Excel
+install.packages("xlsxjars") # Excel
+install.packages("rJava") # Excel
+install.packages("foreign") # Stata, Minitab, SPSS, SAS, etc.
+install.packages("XML") # XML
+install.packages("rjson") # JSON
+```
+
+While these packages are useful, they often become outdated because vendors like Microsoft and SASD change their file formats from time to time. However, all vendor software has functions to import into and read from **.csv** files. So, my advise is to convert your source files into **.csv** format and then read them into your data frames as explained above.
+
+### Saving Data from R to a file
+
+#### Saving a data frame to a "csv" file
+
+When you create and then manipulate a data frame in R, the data and your changes will only be available until you terminate R. This is a good thing, because you can test manipulate your data file in any way you wish and when you re-read the file from the source you will get the original fresh copy, not the changed version. But what if you wish to make permanent changes? There are a couple of things you can do:
+
+1.  Manipulate the data frame in any way you wish and save the script commands you used. This way, next time you read the file you can run the data pre-processing scripts as needed.
+
+2.  Or, you can save your changes into a different **.csv** file:
+
+```{r}
+#| eval: false
+
+write.table(AutoData, 
+            "mydata.csv", 
+            sep = ",")
+```
+
+The `sep = ","` parameter specifies the delimiter between values as a comma, which is most common and one the Excel will read.
+
+The packages listed above for reading from various software data files also have functions for writing to data files. You can consult their respective documentation, if interested.
+
+## 2.6 Working with R Objects
+
+R is an "object-oriented" software language, therefore, it treats everything as objects. An object has two things:
+
+(1) data; and
+(2) programs or functions, encapsulated together.
+
+When you create an object, you can then access it to run its programs/functions and read or manipulate its data. Objects can be used to create other objects using a property of object-orientation called **inheritance**, such that the data and programs from one object are inherited by another.
+
+For example, we can run a regression model to predict miles per gallons using the mtcars data set:
+
+```{r}
+lm(mpg ~ cyl + disp + hp + wt, 
+   data = mtcars)
+```
+
+Or, we can store the model formula in a formula object and then use this object throughout the script. This is convenient when you need to specify a very long and complex formulat and use it in several parts of your script:
+
+```{r}
+lm.formula <- mpg ~ cyl + disp + hp + wt
+lm.formula # Check it out -- a text string which we can re-use
+
+lm(lm.formula, 
+   data = mtcars)
+```
+
+The `lm()` function above creates an **lm** (linear model) object, but it isn't stored anywhere. To store it for later reference, assign it to an object with the **\<-** assignment operator:
+
+```{r}
+lm.object <- lm(lm.formula, 
+                data = mtcars)
+```
+
+Two important functions that are used pervasively to retrieve important data from objects are:
+
+`summary()` -- displays key data stored in an object. What gets displayed changes from one object type to another
+
+```{r}
+summary(lm.object)
+```
+
+`str()` -- shows the "structure" of the object, i.e., just about all the variable name and sample data stored in the object
+
+```{r}
+str(lm.object)
+```
+
+The `str()` function above shows all the object properties with their respective names pre-fixed with `$`. To access those values, just enter the object name followed by the `$` and property name:
+
+```{r}
+lm.object$coefficients # Extracting just the coefficients
+cat("\n") # Blank line
+
+lm.object$fitted.values[1:10] # Extracting first 10 predicted values
+cat("\n") # Blank line
+
+lm.object$residuals[1:10] # Extracting first 10 residual errors
+```
+
+Alternatively, you can get the `summary()` and `str()` without creating objects, but this is not so useful:
+
+```{r}
+#| eval: false
+
+summary(lm(mpg ~ cyl + disp + hp + wt, 
+           data = mtcars))
+
+str(lm(mpg ~ cyl + disp + hp + wt, 
+       data = mtcars))
+```
+
+If you want to store the summary() for later use simply assign it to an object:
+
+```{r}
+#| eval: false
+
+lm.summary <- summary(lm.object)
+lm.summary
+```
+
+Notice in the display in the `str()` results that there are a few values prefixed with `$`. To access specific data elements from an object we can use the `$` symbol, which is used to point to variables or columns in data objects.
+
+For example, these show the regression coefficients
+
+```{r}
+#| eval: false
+
+lm.summary$coefficients # or
+summary(lm.object)$coefficients
+```
+
+This shows the residuals:
+
+```{r}
+#| eval: false
+
+lm.summary$residuals # or
+summary(lm.object)$residuals
+```
+
+Note: you can use the options() function to change how R reports results to some extent. The "scipen" attribute is useful to convert scientific notation (e.g., 1.8e-14) to actual numbers (e.g., the number with 14 zeros after the decimal point). Try it
+
+```{r}
+#| eval: false
+
+options(scipen = "20") # scipen = "Scientify Notation Penalty"
+summary(lm.object) # Check it out
+```
+
+The **scipen** (i.e., scientific penalty) value tells R to display the value in scientific if there are more than 20 zeros after the decimal point. Now try
+
+```{r}
+options(scipen = "4")
+summary(lm.object) # See the difference
+```
+
+Programs/functions that do something with objects have round brackets after them, e.g., `mean()`, `length()`, `summary()`
+
+The formula `mpg ~ cyl + disp + hp + wt` is a typical model formula using R syntax. This function notation is used in various R commands.
+
+The symbol `<-` represent an **assignment** in R. The `lm.fit` formula above runs the `lm()` linear model function and **assigns** (i.e., saves) the result to an object named **lm.fit**.
+
+In many cases the `=` operator can be used interchangeably with `<-`. Most serious R developers don't like to use the `=` sign because it has a special meaning in some other operations (e.g., testing for equality), but it works well, for example:
+
+```{r}
+#| eval: false
+
+lm.object = lm(mpg ~ cyl + disp + hp + wt, 
+               data = mtcars) 
+```
+
+Also, a simpler example:
+
+```{r}
+x <- 3 + 4 # Look at the value of x in the Environment window
+x # Check it out
+```
+
+The value resulting from computing `3 + 4` has been assigned to the variable `x`
+
+These assignment commands work exactly the same:
+
+```{r}
+x <- 3 + 4
+x # Check it out
+
+3 + 4 -> x
+x # Check it out
+```
+
+Please note that x \<- 3 + 4 is **DIFFERENT** than x \< - 3 + 4. The first entry assigns 3 + 4 to the variable object x. In the second entry we are evaluating if the object x is smaller than - 3 + 4. One space shift can make a huge difference. So, please ensure that when you use the assignment operator \<- there is no space between the \< and the -
+
+#### Exploring objects
+
+In R Studio, the content of the work space is shown in the Environment tab (top-right). Its contents can also be displayed in the console with the ls() and objects() commands
+
+```{r}
+#| eval: false
+
+ls()
+objects()
+```
+
+To delete an object, we pass it as parameter to the rm() function (for remove) by writing it in the brackets of the command:
+
+```{r}
+#| eval: false
+
+rm(x)
+```
+
+## 2.7 Variables, Data Types, Objects, Classes and Data Structures
+
+### Overview
+
+R, like all statistical software, uses many different data/variable types and classes. Understanding how to work with different data types and classes is key to understanding how to build and interpret models in R.
+
+A variable of a certain type (e.g., character) will contain data of the same type. A variable class and type are two different things. For example:
+
+```{r}
+x <- 2.3
+class(x) # The class is numeric
+typeof(x) # The type is more specific -- double (i.e., with decimals)
+```
+
+The best way to think of a variable is as a container. They can contain just about anything, e.g., a single value, a vector, an array of values a graph, results from an analysis or any R object:
+
+What's the meaning of the dot `"."`?
+
+Note: a `"."` in a variable name is simply part of the name and nothing else; e.g., x, lm.fit, my.data are valid variable names
+
+#### Simple Data Variable & Data Types
+
+These contain single values of a given type, e.g., numeric, character, factor, date, and logical. You don't need to declare a variable's type. The variable type is implicitly (automatically) declared when a value is stored in the variable. Certain data types require delimiters, such as double quotes " for character (i.e., text) data. It is often useful to check or display a particular variable data type:
+
+#### Numeric Data
+
+```{r}
+x <- 2.4 # Automatically declares x as numeric
+y <- as.integer(2) # Declares y as an integer 
+x 
+y
+```
+
+```{r}
+class(x) # Check it out
+typeof(x)
+class(y) 
+typeof(y)
+```
+
+```{r}
+is.numeric(x) # Check if x is numeric
+is.numeric(y) # Check if y is numeric
+is.integer(x) # Check if x is an integer
+is.integer(y) # Check if y is an integer
+```
+
+#### Character Data
+
+Note: characters are case sensitive
+
+```{r}
+x <- "Alberto"
+x
+
+class(x) # Check it out
+typeof(x)
+is.numeric(x) # Check that x is NOT numeric
+is.character(x) # Check that x is character
+nchar(x) # Number of characters in the value of x
+nchar("Alberto") # Number of characters in the literal text "Alberto"
+```
+
+#### Date Data
+
+```{r}
+x <- as.Date("2016-10-20") # Converts a text string into a date value
+# Note that the word "Date" is capitalized
+x # Check it out
+```
+
+Also note the date format is YYYY/MM/DD, which can be changed as follows:
+
+```{r}
+x <- as.Date("10/20/2016", "%m/%d/%Y") # Use upper case %Y for 4-digit years
+x # Check it out
+
+x <- as.Date("10/20/16", "%m/%d/%y") # Use lower case %y for 2-digit years
+x # Check it out
+
+class(x) # Check it out
+typeof(x) # Note that dates are stored internally as numbers
+```
+
+Note: you can use other date formats with: %a abbreviated weekday; %A weekday; %b abbreviated month; %B month.
+
+Also, you can use the as.POSIXct() function to read date and time:
+
+```{r}
+x <- as.POSIXct("2016-10-20 17:30") # Note that a space is needed after :
+x # Check it out
+```
+
+You can subtract dates and add days to a date:
+
+```{r}
+born <- as.Date("2000/2/12")
+born # Check it out
+
+today <- Sys.Date()
+today # Check it out
+
+aWeekAgo <- today - 7
+aWeekAgo
+
+aWeekFromNow <- today + 7
+aWeekFromNow
+
+ageInDays <- as.numeric(today - born) # Need to convert to numeric
+ageInDays
+
+age <- floor(ageInDays / 360) # The floor() function rounds down decimals
+age
+```
+
+#### Logical Data
+
+Logical variables can be either TRUE or FALSE. Numerically, TRUE is identical to 1 and FALSE to 0. Logical variables and values are important to evaluate conditions
+
+```{r}
+TodayIsMyBirthday <- F # Can use FALSE instead of F
+class(TodayIsMyBirthday)
+typeof(TodayIsMyBirthday)
+is.logical(TodayIsMyBirthday)
+
+2 == 3 # The double == is used to evaluate if two values are equal
+2 != 3 # Evaluate if 2 is not (!) equal to 3
+2 < 3 # Evaluate if 2 is smaller than 3
+```
+
+#### Factor Data
+
+Text is difficult to process quantitatively without some transformation.
+
+A factor is a special type of text data, which is like a category, but unlike free text, factors have a fixed number of unique values that repeat throughout the data.
+
+Understanding factor variables is key in understanding regression models with categorical data and classification models (e.g., logistic regression) which predict the likely classification of an observation.
+
+For example, house location types. Say, if there are 3 types of house locations: Rural, Urban and Suburban, we can create a factor for this data that finds the unique factors (i.e., text values) to categorize houses by location type. The factor conversion also assigns a number to each category, so that you can process things quantitatively. Take this text string vector:
+
+```{r}
+x <- c("Rural", "Urban", 
+       "Suburban", "Urban",
+       "Urban", "Suburban")
+x # Notice that Urban and suburban are repeated, as you would expect
+
+y <- as.factor(x) # Now, Convert x into a factor variable
+y # Check out the 3 factors extracted out of x
+
+levels(y) # Display the unique categories in the data
+as.numeric(y) # Check the unique number assigned to each factor
+```
+
+### Complex Data Structures
+
+R is very rich on data structures. The simple variables and data types discussed above are simple data structures. But there are more complex data structures like vectors, matrices, data frames and lists, which give R a lot of power for data manipulation. Understanding how these data structures work is key to unleashing the power of R for data analysis.
+
+#### Vectors
+
+A vector is simply a list of values, but all values must be of the same type (e.g., character, numeric, date, etc.)
+
+R is said to be a **"vectorized"** language, meaning that many values are stored in vectors and that R has many convenient features to manipulate data contained in these vectors.
+
+The Popular `c()` function is the vector **constructor** function. The **c** means to **construct** or \*\*create" a vector with the values supplied. Vectors are convenient ways to store groups of values of the same type (e.g., coefficients, residuals, predictions, etc.)
+
+```{r}
+x <- c(1, 2, 3, 2)
+x # Notice that all values are numeric
+
+class(x)
+typeof(x)
+```
+
+R tries coerces data to be of a given type when values are incompatible. For example, if you try to create a vector with a number and a character, R corrects this:
+
+```{r}
+z <- c(1, "al")
+z
+```
+
+Notice that "1" above is converted to character to be compatible with "al"
+
+```{r}
+x <- c(1, 2, 3, 2, 6, 3, 5)
+x # Check it out
+
+x[4] # 4th element of the vector
+```
+
+A negative index removes an element from the vector
+
+```{r}
+x <- x[-4] 
+x # The 4th vector element got removed
+```
+
+One of the nice things about R vectors is that we can manipulate all the values in a vector with a simple command. For example:
+
+```{r}
+y <- x * 3 # Multiplies every value of the x vector by 3
+y # Check it out
+```
+
+Vectors can also hold text values (need to enclose the text in quotes)
+
+```{r}
+x <- c ("ITEC 610", "ITEC 620", "ITEC 621")
+x # Try it
+
+x[3] # Try it
+```
+
+You can also give names to each vector element, in 2 ways
+
+Directly:
+
+```{r}
+x <- c(fname = "Alberto", 
+       lname = "Espinosa", 
+       title = "Professor")
+x # Check it out
+```
+
+Or with the `names()` function
+
+```{r}
+x <- c("Alberto", 
+       "Espinosa", 
+       "Professor")
+x # Check it out
+
+names(x) <- c("fname", 
+              "lname", 
+              "title")
+x # Check it out
+```
+
+#### Data Frames
+
+Data frames are fundamental to understanding how to access and manipulate data in R. The easiest way to understand a data frame is to think of it as an Excel sheet with various columns each with a column name (or think of it as a database table).
+
+Another way to think of it is as table composed of vectors. That is, columns can contain different data types. But the data in one column has to be of one type (i.e., a vector)
+
+`$` is NOT money in a data frame, but it is how you extract a vector column from a data frame table. For example, a column named LastName in a data frame called Employees can be accessed using this name: "Employees\$LastName" (note: in MS Access we would access this column with Employees.LastName)
+
+Also, every row and column in a data frame is **"indexed"**. It is very important to understand the use of indices in R for data manipulation. For example, say you have a data frame named **Employees** with multiple columns holding employee data. You can use the following bracketed indices to access the data you need:
+
+```{r}
+#| eval: false
+
+Employees[1, ] -- First row (all columns) 
+Employees[, 1] -- First column (all rows)
+Employees[2, 3] -- Element in 2nd row and 3rd column
+Employees[3:10, 2:4] -- Rows 3 through 10 from columns 2 throgh 4
+```
+
+**IMPORTANT:** a thorough understanding of data frame and vector indices is key to understanding sub-sampling, cross-validation and machine learning. Try to understand this well.
+
+Let's practice with indices. First create a vector that will have the row indices for a data frame we will create shortly called MyDataFrame We will call this vector MyIndex (be careful with the capitalization)
+
+```{r}
+MyIndex <- 1:8 # Creates the MyIndex vector with values 1 to 8
+MyIndex # Check it out
+```
+
+Now let's create a vector with 8 course numbers
+
+```{r}
+courses <- c("ITEC 610", "ITEC 616", 
+             "ITEC 620", "ITEC 621", 
+             "ITEC 660", "ITEC 670", 
+             "KSB 620", "KSB 621")
+courses # Check it out
+```
+
+Now let's create a vector with the pre-requisites for these 8 courses
+
+```{r}
+prereqs <- c("None", "None", 
+             "ITEC 610", "ITEC 620", 
+             "ITEC 610", "KSB 065", 
+             "ITEC 620", "ITEC 621")
+prereqs # Check it out
+```
+
+Now let's create a data frame with indices, courses and prerequites:
+
+```{r}
+MyDataFrame <- data.frame(MyIndex, 
+                          courses, 
+                          prereqs)
+MyDataFrame # Check it out
+```
+
+Now you can use the `$` symbol after the data frame to reference a single column
+
+```{r}
+MyDataFrame$courses
+```
+
+Lets look at just part of the data frame
+
+```{r}
+head(MyDataFrame) # Display the first few rows
+tail(MyDataFrame) # Display the last few rows
+MyDataFrame[2, c("courses", "prereqs")] # To list selected columns for row 2
+MyDataFrame[, c("courses", "prereqs")] # To list selected columns for all rows
+```
+
+#### Matrices
+
+A matrix is similar to a data frame in most respects (i.e., a table with values), except that all values must be of the same type in the entire matrix. Most often matrices contain only quantitative values, which can be easily manipulated with matrix algebra.
+
+Matrices are important in R because some statistical routines, like some correlation functions" only work with quantitative matrices. This is how you create a matrix with 10 elements organized into 5 rows (i.e., the matrix has 2 columns, so it is a 5x2 matrix):
+
+```{r}
+x.mat <- matrix(1:10, nrow = 5)
+x.mat # Check it out
+```
+
+You could also accomplish the same thing with:
+
+```{r}
+x.mat <- matrix(1:10, ncol = 2)
+x.mat # Check it out
+```
+
+You can name the columns and rows of matrices:
+
+```{r}
+colnames(x.mat) <- c("Ref No.", "Sales")
+rownames(x.mat) <- c("John", "Judy", "Sally", "Moe", "Maria")
+x.mat
+```
+
+#### Lists
+
+A list is similar to a vector but it can contain data of different types. Vectors can be used to create columns in data frames (i.e. tables), lists cannot
+
+```{r}
+y <- list(name = "Alberto", 
+          title = "Professor", 
+          age = 16)
+y # Check it out -- the data types are preserved
+```
+
+A list can be quite complex because its elements can be anything, that is, single values, vectors, other lists. For example (notice that we have name lists inside of a list):
+
+```{r}
+friends <- list(MyName = "Alberto", 
+                MyAge = 15, 
+                Charlie = list(age = 20, major = "Analytics"), 
+                John = list(age = 30, job = "Programmer"), 
+                Dan = list(age = 40, profession = "Lawyer"), 
+                Others = c("Joe", "Moe", "Doe"))
+```
+
+You can extract distinct elements from a list with the \$ or \[\[\]\]
+
+```{r}
+friends # Check it out
+
+str(friends) # Inspect it
+
+friends$John # Let's get all the data for John
+friends$John$job # Let's get John's job
+friends[["John"]]
+```
+
+#### Data Reshaping
+
+If you have various columns (i.e., vectors) of data of the same type and you would like to combine them into a matrix you can use the "cbind()" function. Notice below how all the values are automatically converted to text because MyIndex values cannot be numbers -- all elements in a matrix must be of the same type.
+
+```{r}
+My.Matrix <- cbind(MyIndex, 
+                   courses, 
+                   prereqs)
+
+My.Matrix
+class(My.Matrix)
+```
+
+Or, if you would like to combine the vectors into a data.frame, you can use the data.frame(). Notice how all the values can now be of different types
+
+```{r}
+My.DataFrame <- data.frame(MyIndex, 
+                           courses, 
+                           prereqs)
+My.DataFrame
+class(My.DataFrame)
+```
+
+#### Subsampling
+
+The concept of sub-sampling is **CENTRAL** TO **Cross-Validation** and **Machine Learning**.
+
+Note: we will discuss this in more depth later on, but here is some R code to get you thinking about machine learning
+
+```{r}
+library(MASS) # Contains the Boston housing data set
+nrow(Boston) # This function counts the total rows in the Boston dataset = 506
+```
+
+The next function `set.seed()` sets the first number of the random number generator. If you remember the random number tables in old statistics book, they contain a long sequence of random numbers, each between 0 and 1. You can pick the first 100 to get 100 random numbers. But if you re-sample starting with the first value you will get the same 100 values. This is OK if you want a repeatable result for demonstration purposes. But often, when you re-sample you want to get a different set of random numbers. In such a case, you just need to change the random seed. Let's illustrate this with the random seed set to 1 (i.e., start with the first random number)
+
+```{r}
+set.seed(1) 
+```
+
+Now, let's generate a subset of the Boston data set containing a sub-sample of **70%** of the observations selected randomly. In Machine Learning, we would use this 70% to **train** the model, which we would then **test** with the remaining **30%**. We will cover this in more depth later on, but let's see how to draw the 70% train sub-sample.
+
+First, let's create a vector named **train**, which we will use as an **index** vector to select random rows of observations from the data set. In the command below we use the function `nrow()` to extract the number of rows of data in the Boston data set. We then take the sequence of numbers from 1 to nrow(Boston) (i.e., 1,2,3,,,,506) (i.e., all rows available) and create a random index vector with 70% of these values. We will use this vector will be used later to select 70% of the rows or observations from the Boston data set.
+
+```{r}
+train <- sample(1:nrow(Boston), 
+                0.7 * nrow(Boston))
+train[1:100] # Check out the first 100 values in the index vector
+length(train) # 354 (70%) observations in the train data set
+```
+
+Now we can use the index `[train, ]` to select the 70% training observations from the data set. Let's draw the subset and store it in a new data frame object named Boston.train:
+
+```{r}
+Boston.train <- Boston[train, ]
+```
+
+Note that I used a `","` in the `[train, ]` index above. Can you tell why we placed a comma inside the index? It is because **Boston** is a data frame containing rows and columns. An index for a data frame needs to specify the specific row and column to access, separated with a comma. Since **train** is before the comma, it will select all the rows contained in the **train index** vector. Since there is nothing after the comma, it will select all available columns in the data frame. I chose the name **Boston.train** to store this subset for later use.
+
+```{r}
+Boston.train[1:10, 1:6] # Check out the first 10 row and 6 columns
+nrow(Boston.train) # Check the number of rows of this subset
+```
+
+## 2.8 Working with Text
+
+The subject of text analytics is outside the scope of this book, but R is very powerful for manipulating text, so I illustrate a few basic functions next.
+
+You can Concatenate text with the `paste()` function. Note that the default separator in the `paste()` function is a blank space
+
+```{r}
+MyText <- paste("My", "Name", "is", "Alberto") # To store it in a variable
+MyText # Note that sub-strings are separated by a blank space by default
+```
+
+But you can change the separator with the `sep =` attribute
+
+```{r}
+# to change default separator to "-"
+paste("My", "Name", "is", "Alberto", sep = "-") 
+
+# to eliminate the blank space
+paste("My", "Name", "is", "Alberto", sep = "") 
+```
+
+You can also concatenate literal text enclosed in quotes with text contained in variables without quotes:
+
+```{r}
+# To create a variable that contains text
+MyName <- "Alberto" 
+
+# And another variable
+MyCourse <- "Predictive Analytics" 
+
+# To embed variables
+paste("My", "Name", "is", MyName, "and I teach", MyCourse) 
+```
+
+The `sprintf()` does the same, but it places variable contents in each instance of `%s`
+
+```{r}
+sprintf("My Name is %s and I teach %s", MyName, MyCourse)
+```
+
+In contrast to `paste()`, the `c()` function concatenates into a vector
+
+```{r}
+# Creates a vector with 4 elements
+MyText <- c("My", "Name", "is", "Alberto") 
+MyText
+```
+
+Which you can then collapse into a single text string
+
+```{r}
+# To concatenate into a string with no spaces
+paste(MyText, collapse = "") 
+
+# Or with spaces
+paste(MyText, collapse = " ") 
+```
+
+## 2.9 Functions
+
+Functions can be either **"built-in"** (available in the base package or other installed packages); pre-programmed in packages, or **"user-defined"** (written in your R script)
+
+#### Built-In Functions
+
+There are thousands of built in functions in R. Many come in the **{stats}** package and available when you run R and others are available in libraries when you load them. Here are a few examples:
+
+```{r}
+x <- c(2, 3, 6) # Vector constructor function
+mean(x) # Statistical mean function
+```
+
+Again, there are many pre-programmed functions in packages. Each package has its own programmed functions, which are at the core of what we do with R packages. For example, the `lm()` function we used above is a function that fits a linear regression model, which is available in the **{stats}** package.
+
+#### User-Defined Functions
+
+Built-in functions didn't appear out of thin air. Someone programmed them for you to use. But you can also write your own functions. User-defined functions in involve two actions:
+
+1.  Creating/defining the function, and then
+2.  Invoking (i.e., using) the function when needed
+
+You can create any function with the `function()` function (pardon the redundancy). The steps that the function executes are enclosed within curly brackets `{ }`. To run a function you have to highlight and execute all the commands (in between `{` and `}`) associated with the function, which will load the function commands into memory. Once you do this you can use the function any time until you shut down R.
+
+Some functions require parameters, others don't. A parameter is a variable in the function, which requires that we pass one or more values (one for each parameter) to the function, which the function then uses to calculate something.
+
+For example, `ls()` is a built-in function that lists all active objects and does not require parameters. In contrast, `mean(x)` is a function that that requires a vector x as a parameter, which the function will use to compute a mean of all the elements in the vector. Other functions like `data()` can be used without parameters (to view all data sets available in the environment) or with parameters like `data(package = "ISLR")` (to view the data set in a specific package).
+
+Let's create a simple function that displays "This is my R World!!" We will call this function `MyWorld()` and will not require any parameters -- i.e., we don't need to pass any data inside the parentheses.
+
+We first create the function and place the respective instructions within curly brackets `{ }`
+
+```{r}
+MyWorld <- function() # No parameters/arguments
+{print("This is my R World!!")}
+```
+
+Now that we have defined the function `MyWorld()`, highlight all the command lines from `MyWorld` all the way to the ending curly bracket. This will cause the function to load into your environment and be ready to use any time until you exit R. Notice that nothing is printed in the output. This is because we are not telling R to print anything yet. We are just defining what the function will do. Once you run the function, it will execute the print command.
+
+Now you can run the function:
+
+```{r}
+MyWorld()
+```
+
+Once a function is created and executed, it is available for use until you terminate the R session
+
+Now let's write a function with parameters/arguments. Let's suppose what you want to custom tailor the `MyWorld()` function to be anyone's world. This means that you have to pass the world owner's name to the function. We need to write a new function that will accept one parameter. Let's call it `AnyonesWorld()`:
+
+```{r}
+AnyonesWorld <- function(who) # "who" is the parameter
+  {
+  print(paste("This is ", who, "'s R World", sep = ""))
+  }  
+```
+
+Notice a few things above. First, we put the curly brackets in separate lines. It really doesn't matter as long as all the function commands are in between the brackets. But many programmers like to do this to make the function code easy to spot in the script. Also, not that we specified **who** as the parameter for this function. So whatever name we input when we invoke the function will be replaced in the code any time the parameter **who** is invoked.
+
+Now let's execute the function but enter who's world it is (we have a few)
+
+```{r}
+AnyonesWorld("Alberto") # Requires that we enter an argument
+AnyonesWorld("Joe") # Try any name you wish
+AnyonesWorld("Sally")
+```
+
+Functions are useful when you need to do complex calculations and return the results. For example to write a function that will return the squared value of a number x, we make x the parameter and then specify what we want to return, i.e., it's squared value
+
+```{r}
+# Whatever we enter in SquareMe(x) will be squared
+SquareMe <- function(x) 
+{return(x^2)}
+```
+
+Now run the function definition above and then invoke the function below to see how it works:
+
+```{r}
+SquareMe(4)
+```
+
+Note: the function above is a simple illustration in which the function fits in one line. Typically, functions span many lines, in which case it is customary, for readability, to put the open and closing curly brackets in separate lines, For example, let's create a function: that takes a value, then adds 2 and then squares this sum
+
+x is a parameter we are passing to the function. Here is another example. Let's say that we want to take a value, square it and then add 2 to it"
+
+```{r}
+SquareMePlus2 <- function(x) 
+  {
+  y <- (x ^ 2) + 2
+  return(y)
+  } 
+```
+
+Now run the function commands above and then invoke the function as follows:
+
+```{r}
+SquareMePlus2(4) # i.e., (4 ^ 2) + 2 = 18
+```
+
+## 2.10 Program Control: If's
+
+Most R scripts for this course will simply have a "stack" of commands that will execute sequentially. You can execute command stacks in full by highlighting the respective lines and then Ctrl-Enter or one line at a time. However, there will be times when you want to execute some lines only if some condition is met, or there may be times when you want to execute some lines multiple times in a loop. This is called "conditional logic" in software programming. In such cases, you will need to understand how to control the program execution sequence (i.e., logic). There are several types of program controls, but the most common ones are: if/else's and loops.
+
+### if/else
+
+Example, change the value of MyValue below to see how the if control works
+
+(1) the **if** condition must be inside the curly brackets
+(2) the **else** condition too; IMPORTANT: the "else" statement must be in the same line as the closing bracket } of the first condition or the command will fail
+
+```{r}
+MyValue <- 2
+if (MyValue > 10) 
+  {print("Your number is large")} else
+  {print("Your number is small")}
+```
+
+You can also use the `ifelse()` which works like IF functions f in Excel
+
+```{r}
+MyValue <- 5
+ifelse(MyValue > 10, 
+       "Large Number",  # If true
+       "Small Number")  # If not true
+```
+
+You can use `ifelse()` with vectors too:
+
+```{r}
+MyValue <- c(5, 10, 15, 20) # Works with vectors too
+ifelse(MyValue > 10, 
+       "Large Number", 
+       "Small Number")
+```
+
+This is a more complete example that gets several input values for a loan application, does a number of calculations and then makes a decline/approve decision recommendation. Let's do it in steps:
+
+Input data:
+
+```{r}
+CarPrice <- 30000
+DownPayment <- 2000
+LoanYears <- 5
+AnnualInterest <- 0.04 # i.e., 4%
+AnnualIncome <- 60000
+MonthlyObligations <- 2300
+```
+
+Then do the necessary calculations:
+
+```{r}
+LoanAmount <- CarPrice - DownPayment
+LoanMonths <- LoanYears * 12
+MonthlyInterest <- AnnualInterest / 12
+MonthlyPmt <- LoanAmount * MonthlyInterest / 
+             (1 - (1 / (1 + MonthlyInterest) ^ LoanMonths))
+MonthlyPmt <- round(MonthlyPmt, digits = 2) # Let's round to two decimals.
+MonthlyIncome <- AnnualIncome / 12
+DisposableIncome <- MonthlyIncome - MonthlyObligations
+PmtToDisposableRatio <- round(MonthlyPmt / DisposableIncome, digits = 4)
+```
+
+Finally, display results. Notice that I use the concatenation function `cat()` instead of `print()`, which allows you to add line brakes with `"\n"` and eliminate the annoying line indices, e.g., \[1\].
+
+```{r}
+cat(paste("For a loan amount of", LoanAmount,  
+            "for", LoanYears, "years", "or", LoanMonths, "months", "\n",
+            "at annual interest rate of", 100 * AnnualInterest, "percent","\n",
+            "and a disposable income of", DisposableIncome, "the:", "\n\n"))
+
+cat(sprintf("Monthly payment is $ %s", MonthlyPmt), "\n")
+
+cat(sprintf("Monthly payment to disposable income ratio is %s",
+              PmtToDisposableRatio), "\n\n")
+
+if (PmtToDisposableRatio > 0.2) # i.e., loan payment is more than 20% if income
+  {cat("Your loan application has been declined")} else
+  {cat("Your loan application has been approved")}
+```
+
+## 2.11 Program Control: Loops
+
+Loops are one of the most powerful software features in just about any language. A loop allows you to perform a number of commands several time until some condition is met to terminate the loop. Typically, there is an index or value that changes in each loop. For example, we may want to perform a bunch of calculations on the first 10 rows of a table.
+
+There are various types of loops, but the most common are `for` and `while` loops. `for` loops performs a loop "for" each of the values specified. When the values end the loop ends. In contrast `while` loops will continue to loop "while" a certain condition is met. I illustrate both below.
+
+**CAUTION:** Improperly written loops are one of the most common sources of software malfunction. In particular, loops that do not specify the `for` or `while` condition correctly may cause a program to go into an infinite loop that never terminates. You ever wonder why a program spins and spins some times. Most likely, it is an infinite loop somewhere in the code.
+
+#### Example of a `for` loop
+
+In the first loop, `i` will take the value of `1`. In the second loop it will take the value of `2`, etc. In the last loop, `i` will take a value of `10` and the loop will terminate after that.
+
+This script will **NOT** display the R code or the output
+
+```{r}
+for (i in 1:10) {
+  print(paste("The number is", i)) # paste() concatenates strings
+}
+```
+
+If you want `i` to increment by more than `1` you can use the `seq()` function. In the example below `i` takes values in the sequence from `1` to `10`, but in increments of `2`:
+
+```{r}
+for (i in seq(1,10,2)) {
+  print(paste("The number is", i)) # paste() concatenates strings
+}
+```
+
+#### Example of a "while" loop
+
+In a **while loop**, the loop runs **while** a condition is true. These are a bit trickier because While loops generally require initializing a variable with a value, which will change and which we will need to check in the while condition. In the example below, we control the **while** loop with the variable **i**:
+
+```{r}
+i <- 1 # This is like a counter, which we initialize to 1
+while (i <= 10) { 
+  print(paste("The number is", i)) 
+  # we need to increment i in each loop or you will have an endless loop
+  i <- i + 1 
+}
+```
+
+\*\* Important:\*\* omitting the counter increment command `<- i + 1` would cause `i` to not increment, which will create an **infinite loop** that never stops. Can you see why?
+
+## 2.12 Simple Statistics with R
+
+### Working with Data
+
+Let's first open a data set **diamonds** contained in the package **{ggplot2}**:
+
+```{r}
+require(ggplot2) # Contains the "diamonds" data set
+data(diamonds) 
+attach(diamonds)
+```
+
+Note: certain R commands and models require that a data set be active in memory, which we accomplish with the `attach()` function. Let's look at the first 6 records with the `head()` function:
+
+```{r}
+head(diamonds)
+```
+
+Let's get diamond price means by cut
+
+```{r}
+aggregate(price ~ cut, 
+          diamonds, 
+          mean)
+
+# Works like SQL command: SELECT Avg(Price) FROM diamonds GROUP BY cut
+```
+
+To group by more than one attribute use the + operator
+
+```{r}
+aggregate(price ~ cut + color, 
+          diamonds, 
+          mean)
+```
+
+To aggregate more than one column, use `cbind()`
+
+```{r}
+aggregate(cbind(price, carat) ~ cut, 
+          diamonds, 
+          mean) 
+```
+
+Note the `cbind()` function binds columns together. To bind rows use `rbind()`
+
+### Simple Graphics
+
+#### R Base Package:
+
+**Plots**
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+boxplot(diamonds$carat) # Boxplot of a single variable
+
+plot(diamonds$carat, 
+     diamonds$price) # Scatterplot of 2 variables
+```
+
+**Histograms**
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+hist(diamonds$carat) # Histogram of 1 variable
+```
+
+Let's add some labels
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+hist(diamonds$carat, 
+     main = "Carat Histogram", 
+     xlab = "Carats") # w/labels
+
+hist(diamonds$price, 
+     main = "Diamond Price", 
+     xlab = "Price")
+```
+
+**Note:** graphs start with a **primary** graph. A **primary** graph is rendered as a new graph output. Once the primary graph is rendered you can add layers to the graph to include things like labels, graph name, trend lines, colors, etc. Graph layers only work once a primary graph has been rendered.
+
+For example, `qqplots` are popular for detecting non-normality in the data -- if the dots do not align with the straight line the data deviates from normality:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+qqnorm(diamonds$price) # A primary graph rendering the qqplot
+qqline(diamonds$price) # A layer rendering a qqline on top of the qqplot
+```
+
+The data is not very normal. Maybe logging the data will help:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+hist(log(diamonds$price), 
+     main = "Diamond Log(Price)", 
+     xlab = "Price")
+
+qqnorm(log(diamonds$price))
+qqline(log(diamonds$price))
+
+# Yes it helps align the dots to the line, yielding a more normal distribution.
+```
+
+### ggplot2
+
+`{ggplot2}` is one of the most popular and powerful graphic packages in R. `{lattice}` is another popular graph package. When you install the `{ggplot2}` package it will install the `{lattice}` package automatically. Let's look at `{ggplot2}`.
+
+```{r}
+library(ggplot2) # Activate the library first
+```
+
+**Important:** **{ggplot2}** has a unique syntax. This syntax derives from a widely followed **Grammar of Graphics** by `Wilkinson (2005)` and the **Layered Grammar of Graphics** by `Wickham 2010`.
+
+Here is an excellent book on how to use **{ggplot2}** written by the package author. This book states that **the grammar of graphics** tells us that a statistical graphic is a mapping from data to **aesthetic** attributes (color, shape, size) of **geometric** objects or **geoms** (points, lines, bars). The plot may also contain statistical transformations of the data and is drawn on a specific coordinate system. **Faceting** can be used to generate the same plot for different subsets of the data set. It is the combination of these independent components that make up a graphic. Here is the book:
+
+<https://ggplot2-book.org/index.html>
+
+This book states that "the grammar \[of graphics\] tells us that a statistical graphic is a mapping from data to aesthetic attributes (colour, shape, size) of geometric objects (points, lines, bars). The plot may also contain statistical transformations of the data and is drawn on a specific coordinate system. Facetting can be used to generate the same plot for different subsets of the dataset. It is the combination of these independent components that make up a graphic.
+
+Histograms -- the geometric object is geom_histogram and the aesthetic is x = carat:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+ggplot(data = diamonds) + 
+  geom_histogram(aes(x = carat))
+```
+
+We can save graphs in objects. Here we define and save a graph, but no plot yet:
+
+```{r}
+g <- ggplot(diamonds, 
+            aes(x = carat, 
+                y = price)) 
+```
+
+We then add properties, e.g., type of graph, and display it:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+g + geom_point()
+```
+
+We can then change the properties if you wish, e.g., add color
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+g + geom_point(aes(color = color))
+
+g + geom_point(aes(color = color)) + 
+    facet_wrap(~color) # Faceted by color
+
+g + geom_point(aes(color = color)) + 
+    facet_grid(cut~color) # Faceted in grids
+```
+
+### Simple Statistics
+
+Set the seed number first using the `set.seed()` function. But before you do that, set the **random number generator** (RNG) default using `RNGkind(sample.kind="default")`. Random number generators as based on long tables that contain random numbers. The seed is the first number in the random table to use. If you only need one random sample, the seed number is not important -- just pick any seed number. But if you will be re-sampling several times, use the same seed to draw the same sample each time (i.e., when you want repeatable results), or use different seeds to draw different samples each time. There are different kinds of RNG's and which one you pick will not make a big difference because the numbers will still be random. But the type you chose will affect how the random numbers will be generated and rounded and using the same default I use will make it more likely that your results will match mine.
+
+```{r}
+RNGkind(sample.kind = "default")
+set.seed(1)
+```
+
+Generating a random sample of 50 observations from a normal distribution
+
+```{r}
+x <- rnorm(50) 
+x # Check out the sample
+```
+
+Generating samples and sub-samples. To select 100 random numbers from 1 to `obs` (e.g., 1,000).
+
+```{r}
+# Suppose you have 1000 observations, indexed from 1 to 1000, and you want to draw a random of 100 observations. The first thing to do is to create a vector containing 100 random numbers from 1 to 1000 to be used to extract the respective rows from the data set:
+
+train <- sample(1:1000, 100) # This is a vector with 100 random numbers
+train # Check it out
+```
+
+But what if your data set changes or if you want a different random sample size? It is best not to hard code 1000 or 100 or any other number into your code. Rather, it is customary to store values in variables and then use the variables, which makes it much easier to change values when needed. For example, select a percentage (e.g., 75%) of random numbers from 1 to 1000:
+
+```{r}
+obs <- 1000 # Store the data set size in a variable
+
+# You could also use obs <- nrow(dataset), which will store the number of observations in the dataset in the variable obs. Then extract the sample using the variable obs:
+
+train <- sample(1:obs, 0.75 * obs) 
+train
+```
+
+Random sample of 10% with replacement
+
+```{r}
+obs <- 1000
+X <- sample(1:obs, size = 0.1 * obs, replace = T)
+# replace = T means that values in the sample can repeat in the sample
+X # Check it out
+```
+
+#### Bootstrapping
+
+It is a statistical sampling method that can be used in many statistical procedures. We will not cover bootstrapping methods in this R tutorial, but we will go over this later. Bootstrapping is about re-sampling wiht replacement. Suppose you have 100 observations. If you get a sample of 100 with replacement, some of these 100 values will be repeated. If you re-sample another 100 values with replacement, you will get a different sample because the repeated values are likely to be different ones. For example, try this a few times:
+
+```{r}
+obs <- 100 # Let's illustrate with a smaller sample
+boot.x <- sample(1:obs, 
+                 size = obs, 
+                 replace = T)
+boot.x # Notice all the values that are re-selected in the sample
+```
+
+### Other basic statistics in R
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+obs <- 1000
+x <- sample(1:obs, 
+            size = 0.10 * obs, 
+            replace = T)
+
+mean(x) # Sample mean
+median(x) # Sample median
+max(x) # Maximum value in the sample
+min(x) # Minimum value in the sample
+sd(x) # Sample standard deviation
+var(x) # Sample variance
+summary(x) # Sample summary statistics
+hist(x) # Histogram of sample values
+qqnorm(x) # QQ Plot of x
+qqline(x) # QQ Line of x
+summary(mtcars) # Summary statistics on a dataset
+
+# Correlation matrix for mtcars data set, display 2 digits
+print(cor(mtcars), 
+      digits = 2) 
+```
+
+Some libraries have additional useful statistical functions
+
+```{r}
+library(psych) # Has useful statistical functions
+describe(mtcars) # Descriptive statistics
+
+library(ggplot2)  # Contains the diamonds dataset
+describe(diamonds) # Descriptive statistics
+```
+
+See what's in the object
+
+```{r}
+descriptive.diamonds <- describe(diamonds)
+str(descriptive.diamonds)
+```
+
+Now extract what you wish
+
+```{r}
+descriptive.diamonds$n
+descriptive.diamonds$mean
+descriptive.diamonds$sd
+```
+
+Create a data frame with just what you need and columns labeled
+
+```{r}
+data.frame("N" = descriptive.diamonds$n, 
+           "Mean" = descriptive.diamonds$mean,
+           "Std.Dev." = descriptive.diamonds$sd)
+```
+
+About correlations, there are many R functions to visualize correlations, for example:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+library(corrplot) # Library for correlation plots
+
+mtCorr <- cor(mtcars) # Store the correlation object
+
+corrplot(mtCorr, 
+         method = "circle") # Then plot it
+
+corrplot(mtCorr, 
+         method = "ellipse") # Slanted left/right for +/- 
+
+corrplot(mtCorr, 
+         method = "number") # Show correlation
+```
+
+To order variables clustered (grouped) by correlation values and omit the diagonal
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+corrplot(mtCorr, 
+         method = "number", 
+         order = "hclust", 
+         diag = F, 
+         title = "MT Cars Correlation Matrix")
+
+# Try ?corrplot() to see all its methods and arguments
+```
+
+### Regression Analysis
+
+#### Regression Formulas
+
+There are 2 ways to specify regression models. Which one you use will depend on the libraries and functions you are using. But the most common way to specify a regression formula is: `y ~ x1 + x2 + x3 + etc.`, where `y` is the outcome variable and the `x's` are the predictors. For example:
+
+```{r}
+lm.formula <- mpg ~ cyl + disp + hp + wt
+```
+
+In the case above, we have created a **formula object** named **lm.formula**. This is **NOT** a regression model, but just a formula. This is very useful if the formula is long and complex and you plan to use it in many models, this way you don't need to be re-typing it. Check it out:
+
+```{r}
+lm.formula # Show the object just created
+class(lm.formula) # Show the object class
+```
+
+To run the actual regression model we need to use the linear model `lm()` function. We can do this in several ways
+
+```{r}
+lm(mpg ~ cyl + disp + hp + wt, 
+   data = mtcars) # Re-typing the formula and the data set
+```
+
+Or using the formula object created above:
+
+```{r}
+lm(lm.formula, 
+   data = mtcars) 
+```
+
+The two methods above are OK for quick models, but it is better to store the regression results in an object, so that you can access its methods and properties, either with:
+
+```{r}
+lm.model <- lm(mpg ~ cyl + disp + hp + wt, 
+               data = mtcars) # Or
+
+lm.model <- lm(lm.formula, 
+               data = mtcars)
+```
+
+Now that we have the regression results stored in an object, let's extract information from it:
+
+```{r}
+lm.model # Quick display of the model results
+summary(lm.model) # More complete regression output
+```
+
+The `str()` funtion displays more complete information contained in the object:
+
+```{r}
+#| eval: false
+
+str(lm.model) # This function shows the entire object structure
+```
+
+The `lm()` object also contains 4 useful graphs:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+par(mfrow = c(2, 2)) # Divide the output into a 2 rows x 2 cols frame
+plot(lm.model) # Graph all 4 at once
+par(mfrow = c(1,1)) # Reset the output back to 1 row x 1 col frame
+```
+
+You can also display just one of the plots which may be of interest, say #2
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+plot(lm.model, 
+     which = 2) # Graph only the second plot
+```
+
+# 3. R Markdown and Bookdown
+
+## R Markdown
+
+R Markdown is a companion program to R Studio, which allows you to create HTML, PDF, Word, PowerPoint and other documents on the fly, which can include R code and R output. R Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents.
+
+[See: http://rmarkdown.rstudio.com/](See:%20http://rmarkdown.rstudio.com/)
+
+I provide the basics of R Markdown below, but these web sites have excellent material on R Markdown by the author of `knitr` and other popular packages, Yihui Xie:
+
+<https://bookdown.org/yihui/rmarkdown/>
+
+Yihui Xie also has an excellent R Markdown cookbook:
+
+<https://bookdown.org/yihui/rmarkdown-cookbook/>
+
+This is Yuhui Xie's documentation on `knitr`:
+
+<https://yihui.org/knitr/>
+
+The book is free online, but is also available in Amazon:
+
+<https://www.amazon.com/dp/1138359335>
+
+Before you can use R Markdown you need to install and load the "rmarkdown" package with these commands:
+
+```{r}
+#| eval: false
+
+install.packages("rmarkdown")
+require(rmarkdown)
+```
+
+Once installed and once you open an R Markdown file with an extension **.Rmd**, you should see a **Knit** icon in the top tool bar or R Studio. Also, when you select File -\> New File from the menu, you should see the R Markdown option. If you don't see either of this, R Markdown is not properly installed in your setup.
+
+you can create R Markdown files from the Menu with File -\> New File -\> R Markdown -\> Document. Enter the document title and author and select Word (or whatever file format you wish)
+
+For more details on using R Markdown see: <http://rmarkdown.rstudio.com>.
+
+For more information see: <https://www.rstudio.com/wp-content/uploads/2015/03/rmarkdown-reference.pdf>
+
+Here is an excellent R Markdown documentation: <https://bookdown.org/yihui/rmarkdown/>
+
+Also, for a quick **cheatsheet** for R Markdown see: <https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf>
+
+For some quick help with R Markdown see: <http://rmarkdown.rstudio.com/authoring_basics.html>
+
+**Important:** If you see the **Knit** option in the toolbar above, you are all set. If not, you need to install RMarkdown with `install.packages("rmarkdown")` before you can knit documents. When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code cells within the document. The `word_document` output above will cause the document to be knitted as a MS Word file. But you can use `html_document`, `pdf_document` or `powerpoint_presentation` instead.
+
+**Note:** the r global_options settings at the top of this file affects all the scripts in the R Markdown file. However, you can change the settings in each individual code cell if you wish and these settings will only affect that code cell. In the global settings above, we used:
+
+**Note:** As explained, in Quarto, these global options can be set in the YAML.
+
+`knitr::opts_chunk$set(echo = T, warning = F, message = F)`
+
+`echo = F` suppreses the code in the knitted document. `T` shows it.\
+`eval = F` causes the code not to run. Useful to explain code. `T` runs it.\
+`warning = F` suppresses warnings generated by the code. `T` shows it.\
+`message = F` suppresses messages generated by the code. `T` shows it.\
+`include = F` suppresses bot code and results. `T` shows them.\
+`fig.cap = "..."` adds a caption to graphical results
+
+#### A few Basics About R Markdown
+
+Use a single pound `#` sign for a level-1 header Use two pound signs `##`for a level-2 header, etc.
+
+The table of contents attribute `toc: true` in the YAML will pickup on these headers to build a table of contents for you.
+
+To run R scripts in R Markdown, either:
+
+-   Knit the whole file, but note that a single error will halt the knitting process
+-   Hit the play icon in top right corner of the code cell to run the entire cell
+-   Go to a specific instruction you want to run and press Ctrl-Enter
+
+In the **CarLoan** example above, we can assign names to the code cells. This has little value, but it helps remember what the code cell is about. Please note that if you name your code cells the names have to be unique. Duplicate names will give an error. Most of the times, it is better to not name the code cells. You can also change the parameters of the code cell to display or not display code, results, warnings, etc.
+
+For example, this script will **NOT** display the R code, just the results
+
+```{r CarLoanNoScript, echo = F}
+CarPrice <- 30000
+DownPayment <- 2000
+LoanYears <- 5
+AnnualInterest <- 0.04 # i.e., 4%
+AnnualIncome <- 60000
+MonthlyObligations <- 2300
+12 * MonthlyObligations / AnnualIncome
+```
+
+This script will display the R code, but **NOT** the output
+
+```{r CarLoanJustCode, echo = T, results = "hide"}
+CarPrice <- 30000
+DownPayment <- 2000
+LoanYears <- 5
+AnnualInterest <- 0.04 # i.e., 4%
+AnnualIncome <- 60000
+MonthlyObligations <- 2300
+```
+
+This code is similar to the one above, but it will not execute. This is useful when you are writing instructions (like in this book) where you want to show some code an explain it, but you don't want it to execute. For this, use the parameter `eval = F`.
+
+```{r CarLoanNoExec, echo = T, eval = F}
+CarPrice = 30000
+DownPayment = 2000
+LoanYears = 5
+AnnualInterest = 0.04 # i.e., 4%
+AnnualIncome = 60000
+MonthlyObligations = 2300
+```
+
+## Bookdown
+
+Bookdown is another package by R Studio. Like R Markdown, it knits bookdown files, but it also compiles the knitted file into a single book. The link below contains excellent documentation prepared by the author of `knitr` and other popular packages, Yihui Xie.
+
+<https://bookdown.org/yihui/bookdown/>
+
+Before you can use **bookdown** you need to install and load the **{bookdown}**" package with these commands:
+
+```{r}
+#| eval: false
+
+install.packages("bookdown")
+require(bookdown)
+```
+
+# 4. Quarto
+
+See: <https://quarto.org/>
+
+User guide: <https://docs.posit.co/ide/user/ide/guide/documents/quarto-project.html>
+
+You can compare R Markdown further at: <https://quarto.org/docs/faq/rmarkdown.html>
+
+Excellent blog on Quarto: <https://www.njtierney.com/>
+
+Quarto Cheat-Sheet: <https://www.datacamp.com/cheat-sheet/quarto-cheat-sheet-previously-known-as-r-markdown>
+
+Quarto Integration: <https://docs.posit.co/ide/user/ide/guide/documents/quarto-project.html>
+
+Quarto Pointers in R for Data Science: <https://r4ds.hadley.nz/quarto.html>
+
+R Studio is going through a lot of changes to remain competitive in this dynamic market. They recently re-branded the company name to **Posit** (see<https://posit.co/>). The motivation for this change was to remove the term "R" from the company name to appeal more widely to the programming communities like Python, Julia and others. The IDE program R Studio and R Markdown have not changed names and the company is committed to these products. But in order to cater to other programming communities they have launched a new application named **Quarto**. In a nutshell, Quarto does just about the same things that R Markdown does, but it does it in a more integrated fashion. The wisdom of the experts is that Quarto is not a super set of R Studio. They both have similar functionality, but each has unique features. The good news is that it is really easy to install and use Quarto and the conversion of R Markdown files **.Rmd** to Quarto files **.Qmd** is straight forward, so it is very easy to go back and forth between the too. A few pointers on Quarto:
+
+-   **R Markdown** is OK if you plan to knit single **.Rmd** files into single documents and work primarily in R. To use R Markdown you need to install the `{rmarkdown}` package. R Markdown will use the `knitr` program to knit text, R code and R output into one document. R Markdown will also use the `pandoc` program to take the knitr output and convert it your desired format (e.g., HTML, Word, PDF, etc.).
+-   In contrast, **Quarto** installs automatically with R Studio. Quarto is bundled with RStudio v2022.07.1 and higher, so if you install or update to this version or higher, Quarto will be already running with your R Studio.
+-   **Quarto** is generally preferred to R Markdown if you: (1) plan to publish documents, as Quarto supports more formats (e.g., ePub for Kindle) and better support to embed graphs, citations and references; (2) Quarto also allows you to combine multiple Quarto files into a single book with the corresponding chapters; (3) want to program in R, Python, Julia and other languages, as Quarto provides better integration of multiple languages and can be installed with Jupyter Notebook).
+-   Related to this last point, The ISLR (R) book has an ISLP (Python) version, so if you want to experiment with Python code, Quarto is much better than R Markdown. Similarly, the R appendices for this book are being translated into Python as we speak. So, I recommend using Quarto, which will facilitate migrating R code to Python and vice-versa.
+-   To convert a **.Rmd R Markdown** file to a **.Qmd Quarto** file, simply rename it and open it in R Studio. Once the file is open, you need to do some minor editing to the **YAML** header. You can explore the YAML header syntax on the site above, but the main changes to make you Quarto file work fine are:
+
+```         
+`---`
+title: "Appendix R1: R Code" (unchanged)  
+subtitle: "Introduction to R" (unchanged)  
+author: "J. Alberto Espinosa" (unchanged)  
+date: "12/31/2023" (unchanged)  
+
+format: (was output: in R Markdown)  
+    html: (was html_document: in R Markdown;  
+             can be html, pdf, docx, odt, pptx, revealjs, beamer,  
+             gfm, commonmark, mediawiki, epub, ipynb)  
+      toc: true (unchanged -- table of contents)
+      toc-depth: 2 (was `toc-depth:` in R Markdown, the default is 3)  
+      toc-expand: 2 (new, denoted how many toc levels to display initially)  
+      toc-location: right (new, default is right, can be right, left or body)  
+     
+eval: true (evaluate--i.e., run the R code or not)  
+echo: true (include/suppress R code in the rendered document)  
+output:true (run the code, but include/suppress results in rendered document)  
+include: true (set echo, output, warning and error together)  
+warning: false (display/suppress warnings in rendered document)  
+error: false (display/supress errors in the rendered document)  
+message: false (display/supress messages in rendered document)  
+
+abstract: This Quarto document contains R code examples for basic statistical analysis associated with descriptive analytics. It also contains examples of predictive modeling with simple linear regression, bi-variate regression with a dummy variables and multivariate analysis. All predictive analytics work should start with very thorough descriptive analytics first, to become familiarized with the data at hand.  
+`---`
+```
+
+One more difference between R Markdown and Quarto is that in R Markdown you need to embed the local settings inside the `{r}` designator, for example:
+
+```         
+\```{r fig.width = 10,  fig.height = 6, eval = T}
+# R code follows here
+\```
+```
+
+In Quarto, you embed these settings inside the R code itself, using the same YAML syntax above. Each setting is prefixed with `#|`. For example:
+
+```         
+\```{r}
+#| fig-width: 10
+#| fig-height: 6
+#| eval: true
+
+# R code follows here
+\```
+```
+
+# 5. Shiny
+
+Like R Markdown, Shiny is another R Studio product, which allows you to create interactive web applications. We will not cover Shiny in this course and you will not be required to submit your work in Shiny. But you are more than welcome to explore Shiny on your own and submit your work using Shiny. See:
+
+<https://www.rstudio.com/products/shiny/>

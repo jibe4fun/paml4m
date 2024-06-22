@@ -1,0 +1,703 @@
+---
+title: "Appendix R2: Foundations"
+subtitle: "Statistics and Regression Overview"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   pdf:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+     
+fig-width: 10
+fig-height: 6
+fontsize: 10pt
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This Quarto document contains R code examples for basic statistical analysis associated with descriptive analytics. It also contains examples of predictive modeling with simple linear regression, bi-variate regression with a dummy variables and multivariate analysis. All predictive analytics work should start with very thorough descriptive analytics first, to become familiarized with the data at hand. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+---
+
+*This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
+
+# Introduction
+
+This Quarto document contains R code examples for basic statistical analysis associated with descriptive analytics. It also contains examples of predictive modeling with simple linear regression, bi-variate regression with a dummy variables and multivariate analysis. All predictive analytics work should start with very thorough descriptive analytics first, to become familiarized with the data at hand.
+
+The most basic descriptive analytics often performed before start building predictive models include:
+
+**Visual** inspection of the data, including things like scatter plots, distributions with histograms, QQ Plots, etc. Please refer to the PAML4M_1R_R_Intro.Qmd script.
+
+**Describing Central Tendencies and Variability**
+
+**Descriptive Statistics**, including things like means, medians, standard deviations, minimum/maximum values, outliers, etc.
+
+**Understanding Co-Variation**
+
+**Covariance Analysis:** `(Quantitative x Quantitative)`Covariance is an important and fundamental statistical concept to help understand if two variable co-vary in the same direction or opposite directions or not. But it is not very useful when variables have dissimilar scales because results will change if you change the scale of a variable (e.g., from inches to feet).
+
+**Correlation Analysis:** `(Quantitative x Quantitative)` Is the covariance of two variables, divided by the standard deviation of each of the two variables. Because we divide by the variance of each variable, all issues of scale we have with covariance go away and the correlation values are bound between -1 (perfectly negatively correlated) to 0 (uncorrelated or independent) to +1 (perfectly positively correlated). Because correlation is based on differences in values, standard deviations and variance, you can only compute correlation when both variables involved are quantitative. If one of the variables (or both) is (are) binary you can still compute the correlation statistic, but it is not as useful as ANOVA.
+
+**ANOVA or Analysis of Variance:** `(Quantitative x Categorical)` If one of the variables is quantitative and the other is categorical or even binary, it is more useful to evaluate co-variation with an ANOVA test. ANOVA computes the mean for the quantitative variable for each of the categories of the other (categorical) variable and evaluates if these means vary significantly across the categories. It is called analysis of "variance" and not analysis of "means" because the means are evaluated by comparing the variances in the two groups to see whether they vary more **within** each category (not significant or independent) than **across** categories (significant co-variation). I illustrate this more clearly below.
+
+**Chi-Square Test of Independence:** `(Categorical x Categorical)` If you want to understand the co-variation between two categorical variables, correlation and ANOVA won't help. To evaluate this, the typical approach is to cross tabulate all the categories of one variable in rows and all the categories of the other variables as columns, with the cross-tabulated counts in the respective cells. If the two variables are independent, the proportion of counts between any two cells in a given column (or row) will be similar to the proportion of counts for the respective row (or column) totals. But if one variable has a significant influence on the other, the cell proportions will be very different than the row (or column proportions). I illustrate this more clearly below
+
+# 1. Covariance and Correlation `(Quantitative x Quantitative)`
+
+It is important to develop a good sense for which variables co-vary or not with others. Generally speaking, when building predictive models, the goal is to have predictors that are highly correlated with the outcome (i.e., dependent) variable, but are not correlated with each other (i.e., independent variables). Thus, covariance and correlation matrices provide very useful information when developing predictive models.
+
+Let's look at the diamonds data in the ggplot package:
+
+```{r}
+require(ggplot2) # Contains the diamonds data set
+data(diamonds) # Load the data set into the work environment
+```
+
+The `cov()` and `cor()` functions in the **{stats}** package provide quick covariance and correlation, respectively. They both require a matrix as an input, so data frames need to be first converted into a matrix. For example, let's bind 3 variable vectors into a data frame and convert it into a matrix:
+
+```{r}
+MyDiamonds.dat <- data.frame(diamonds$price,
+                             diamonds$carat, 
+                             diamonds$depth)
+
+MyDiamonds.mat <- as.matrix(MyDiamonds.dat)
+```
+
+Alternatively, you can just specify the column numbers this way, all rows, columns 7, 1 and 5
+
+```{r}
+#| eval: false
+
+MyDiamond.mat <- as.matrix(data.frame(diamonds[, c(7,1,5)]))
+```
+
+Before we continue, let's change the annoying scientific notation (the `scipen =` parameter stands for "scientific notation penalty"). For example, if we want only very small numbers in scientific location we can use the `options()` function with `scipen = 4`, so that only values with more than 4 zeros after the decimal point are displayed in scientific notation.
+
+```{r}
+options(scipen="4")
+```
+
+Now you can compute the covariance and correlation matrices for these 3 variables
+
+```{r}
+options(scipen = 4) # To limit the use of scientific notation
+
+cov(MyDiamonds.mat, use = "complete.obs") # Discard rows w/incomplete data
+cov(MyDiamonds.mat, use = "pairwise.complete.obs") # Discard pairs w/o data
+cor(MyDiamonds.mat, use = "complete.obs") # Discard rows w/incomplete data
+cor(MyDiamonds.mat, use = "pairwise.complete.obs") # Discard pairs w/o data
+```
+
+It is easy to figure out from the output above that the covariance matrix is difficult to interpret because it is affected by the scales of the variables involved. For example, the covariance of price with carats is 1742.76. What does this mean? Is this value high or low? Hard to tell. But if we look at the correlation matrix we see that the correlation is 0.92, which is close to 1, so yes, it is very high. Again, covariance is a very important statistical value of great mathematical and modeling interest. There are many statistical methods that are based on the co-variance structure of the data. But for business interpretations, correlation is more useful. Consequently, we will use correlation from now on for the most part.
+
+Unfortunately the `cor()` function only gives correlation values, not **p-values**. For p-values, the `rcorr()` function in the **{Hmisc}** package does the job. It returns the number of observations plus 2 matrices -\> one with **correlation** values and one with the respective **p-values**.
+
+```{r}
+#| message: false
+
+library(Hmisc) # Load the library. Note the H is upper case
+
+rcorr(MyDiamonds.mat,  # Requires a matrix as an input
+      type = "pearson")
+```
+
+You can display correlations (above the diagonal), distributions (diagonal) and scatter plots (below the diagonal) all together with the `ggpairs()` function in the **{GGally}** library:
+
+```{r}
+library(GGally) # Package with useful graphics displays
+
+# WARNING -- the following takes a LONG TIME
+ggpairs(MyDiamonds.dat) # It can be a bit slow
+```
+
+It works with categorical data too. Try this on your own. It takes a long time:
+
+`ggpairs(diamonds)`
+
+The `pairs()` function from the base **{graphics}** package works well too. It works with both, matrices and data frames:
+
+```{r}
+pairs(MyDiamonds.dat)
+```
+
+It works with categorical data too. Try this on your own. It takes a long time:
+
+```{r}
+#| eval: false
+
+pairs(diamonds)
+```
+
+Example with the **mtcars** data set:
+
+```{r}
+#| message: false
+
+library(Hmisc) # Load the library. Note the H is upper case
+library(GGally) # Package with useful graphics displays
+options(width = 100) # Wide width to avoid wrapping the correlation matrix
+rcorr(as.matrix(mtcars))
+ggpairs(mtcars) # Takes a bit of time
+pairs(mtcars) # A bit quicker, but not as nice
+```
+
+The `corrplot()` function in the **{corrplot}** library provides nice graphics.
+
+```{r}
+library(corrplot) # Library for correlation plots
+mtCorr <- cor(mtcars) # First, store the correlation object
+
+corrplot(mtCorr, 
+         method = "number", 
+         order = "hclust") # Show correlation
+
+corrplot(mtCorr, 
+         method = "circle", 
+         order = "hclust") # Then plot it
+
+corrplot(mtCorr, 
+         method = "ellipse", 
+         order = "hclust") # Slanted left/right for +/- 
+```
+
+You can order variables clustered by correlation values and omit the diagonal
+
+```{r}
+corrplot(mtCorr, 
+         method = "number", 
+         order = "hclust", 
+         diag = F, 
+         title = "MT Cars Correlation Matrix")
+```
+
+Type `?corrplot()` at the console to see all the methods available
+
+# 2. Analysis of Variance (ANOVA) `(Quantitative x Categorical)`
+
+Analysis of Variance (ANOVA) is a test that compares the means of 2 or more groups or categories. The means of 2 groups are always different, but are they different by very small amounts? Or are the differences substantial? This is what ANOVA tests. ANOVA tells us if the difference in means between or across categories is significant. Generally speaking, ANOVA compares the **within-category** variance for both groups against the **between-category** variance across both groups. If the between-group variance is significantly larger than the within-group variance, then the difference in means between the two groups is significant. Otherwise it is not.
+
+ANOVA can be used any time you need to compare means between or across groups. For example, an OLS regression reports an R-Squared (i.e., explained variance) and a p-value for the entire regression model. The p-value is based on an ANOVA test, which analyzes whether the variance in the errors or residuals around the regression line are significantly smaller that the variance of the dependent variable values, relative to its overall mean. If the p-value or ANOVA test is significant, we say that the regression model has a significant explanatory power and provides significantly more explanation than just the mean and its variance (i.e., a model without predictors or the "null" model).
+
+There are 2 popular functions to do ANOVA tests: `aov()` and `anova()`, both available in **{stats}**.
+
+## The aov() Function
+
+The `aov()` function is useful to compare the means of a continuous variable (e.g., price) across various categories (e.g., clarity, color). In a nutshell, it tests whether the variance across groups is larger than within groups. The larger the F statistic, the more confidence we have that the variance across groups is significant. In the example below, the ANOVA test is significant at the p \<\< 0.05 level.
+
+```{r}
+require(ggplot2) # Contains the diamonds data set
+
+aov(price ~ clarity, 
+    data = diamonds) # Run the ANOVA on a single factor
+```
+
+The `summary()` of `aov()` provided more details about the F-test:
+
+```{r}
+summary(aov(price ~ clarity, 
+            data = diamonds)) # More detailed results
+```
+
+Alternatively, store the ANOVA results in an object
+
+```{r}
+MyAOV <- aov(price ~ clarity, 
+             data = diamonds)
+
+summary(MyAOV) # Show the ANOVA object result summary
+```
+
+You can do ANOVA for a continuous variable across more than one categorical variable. In the examples below there are 2 and 3 ANOVA tests, respectively. The first shows that there is a significant difference in price across clarity categories, but analyzed within color. In the second test is the reverse, that is there is a difference in price across color, within clarity categories. The second ANOVA test works the same way but, for example, the difference in prices is significant across clarity categories, but within the same color and cut. And so on.
+
+```{r}
+summary(aov(price ~ clarity + color, 
+            data = diamonds)) # ANOVA on 2 factors
+
+summary(aov(price ~ clarity + color + cut, 
+            data = diamonds)) # On 3 factors
+```
+
+You can also visualize the differences with boxplots. These visualizations should tell a similar story than the respective ANOVA tests, but without significance statistics, just visually:
+
+```{r}
+boxplot(price ~ clarity, 
+        data = diamonds)
+
+boxplot(price ~ cut, 
+        data = diamonds)
+
+boxplot(price ~ clarity + cut, 
+        data = diamonds) 
+```
+
+### Replicating the ISLR textbook example with the credit Default data set
+
+This is another illustration of ANOVA and it replicates an example provided in the ISLR book, but it also conducts an ANOVA test in addition to the plots. Similarly to the example in the ISLR book, I first extract a balanced sample from the data set. It is common in classification data sets to have unbalanced number of observations across categories. For example, medical data sets with disease diagnosis tend to have far more negatives than positives. The same is true for transaction fraud, etc. This example is no different. The **Default** data set is synthetic and contains 10,000 observations. Only 333 of them represent loan defaults. To balance the analysis I use all 333 default records, but extract a random sample of 333 records from the no-default group.
+
+```{r}
+library(ISLR) # Contains the Default data set
+
+set.seed(1)
+
+def.yes <- subset(Default, 
+                  default == "Yes") # Subset with all default loans
+
+def.no <- subset(Default, 
+                 default == "No") # Subset with all no-default loans
+
+def.no <- def.no[sample(nrow(def.no), 333),] # Extract 333 of them randomly
+
+def.sub <- rbind(def.yes, def.no) # Bind the defaults and no defaults
+
+# Scatterplot with vertical lines at the respective means
+
+plot(income ~ balance, 
+     data = def.sub,
+     col = ifelse(default == "No", "darkgreen", "purple"),
+     pch = ifelse(default == "No", 1, 3))
+
+abline(v = mean(def.sub$balance), 
+       col = "red") 
+
+# abline(h=mean(def.sub$income), col="red") 
+
+abline(h = 40000, col = "red") 
+
+boxplot(balance ~ default, 
+        data = def.sub, 
+        col = c("darkgreen","purple"))
+
+boxplot(income ~ default, 
+        data = def.sub, 
+        col = c("darkgreen","purple"))
+
+summary(aov(balance ~ default, 
+            data = def.sub))
+
+summary(aov(income ~ default, 
+            data = def.sub))
+```
+
+## The anova() Function
+
+The `anova()` function is useful when comparing nested linear models. One model is nested withing another if the larger models contains all the predictors of the small model. Let's fit 3 nested regression models with the diamonds data set and price as the outcome variable. The first model is the null model with no predictors (`~ 1` in the model indicates the intercept as the only predictor, and in this case nothing else). The second model is a simple linear regression model with a single predictors, and the last has 2 predictors.
+
+```{r}
+library(ggplot2)
+
+lm.null <- lm(price ~ 1, 
+              data = diamonds) # Null model
+
+lm.small <- lm(price ~ carat, 
+               data = diamonds) # Small model
+
+lm.large <- lm(price ~ carat + clarity, 
+               data = diamonds) # Large model
+
+anova(lm.null, lm.small, lm.large) # Compare 3 nested models
+```
+
+The output shows 3 models and 2 ANOVA test results. The first ANOVA test compares the second model to the first in the `anova()` function. The second ANOVA test compares the thirds model to the second. You can test as many nested models as you wish in one pass. The first p-value is significant, so the small model has significantly more explanatory power than the null model. The second p-value is also significant, so the large model has more explanatory power than the small model. In other words, carats explain more variance in price than just the mean price, but adding clarity as a predictor improves the explanatory power over the small model.
+
+# 3. Chi-Square Test of Independence `(Categorical x Categorical)`
+
+For example, say that we want to see if diamond "cut" and "color" co-vary. In other words, we want to know if diamond cut and color are independent (i.e. one does not affect the value of the other) or if they are dependent (i.e., the value of one variable influences the value of another).
+
+The first step is to prepare a cross table with the counts for both categories
+
+```{r}
+#| message: false
+
+attach(diamonds)
+cross.table <- table (cut, color) # Store results in a cross table
+cross.table # Check it out
+```
+
+We can now look at the margin totals:
+
+```{r}
+rowSums(cross.table) # Check the row totals
+cat("\n") # Blank line
+
+colSums(cross.table) # Check the column totals
+cat("\n") # Blank line
+
+sum(rowSums(cross.table)) # Compute table totals
+sum(colSums(cross.table)) # Same result
+```
+
+If the row and column variables are totally independent the proportion of `rowSums()` would be identical to the proportion of any two cells on the same two rows of the table. Similarly, the proportion `colSums()` would be identical to the proportion of any two cells on the same two columns.
+
+In fact, you can create a table of expected values as follows: `Exp.Cell(i,j) = rowSum(i) * colSum(j) / table.tot`. If the **observed** (actual) values in the table are close to the **expected** values, the two variables are independent. If the observed values are very different than the expected values, the two variables are dependent (i.e., they co-vary)
+
+The `chisq.test()` function does this test for you when you feed it the cross table. The null hypothesis is that the two variables are independent. A significant p-value rejects the null hypothesis suggesting that the variables are dependent. In addition, we can extract the observed an expected values from the `chisq.test()` object:
+
+```{r}
+chiSq.diamonds <- chisq.test(cross.table) # Conduct the test
+chiSq.diamonds$observed # Check the observed values, same as the cross.table
+
+print(chiSq.diamonds$expected, digits = 2) # Check the expected values
+chiSq.diamonds # Check out Chi Square test results
+```
+
+The p-value is significant, so we reject the null hypothesis that cut and color are independent and conclude that they are dependent (i.e., they co-vary).
+
+# 4. Simple Linear Regression
+
+Let's work an example with the **Boston** housing dataset in the **{MASS}** package. We start by fitting a **null** model. Normally, you don't need to do this, but I do this hear as a building block. Let's load the library. You may also want to type ?Boston in the console to explore the variables in the dataset
+
+```{r}
+library(MASS) # Contains the Boston data set
+```
+
+## Fitting a Model
+
+The `lm()` function in the **{stats}** library fits **linear models** based on the OLS regression model. The `lm()` model requires the **outcome variable**, followed by the **\~** operator, followed by the **predictors**, separated from each other with a **+** sign, and the data attribute to indicate the dataset to be used for fitting the model. For the null model, we specify no predictors and use **1**, which is like having a column of 1's in the dataset, which yield the intercept. As before, **medv** is the median value of homes in the respective county in the Boston area in thousands of \$.
+
+```{r}
+lm.fit.null <- lm(medv ~ 1, 
+                  data = Boston) # Use 1 for no predictors
+summary(lm.fit.null) # The null model
+
+# The outcome variable mean and the null model intercept are the same
+mean(Boston$medv) 
+```
+
+The null model is not very useful. We could obtain the same result just by calculating the mean of **medv**. Notice that there is no ANOVA F-test, model p-value or R-squared, because there is really nothing to report. In a simple regression model, we include a single predictor and expect to improve the explained variance of the model. The explained variance will most definitely increase when we add one predictor, but we need to figure out if the increase is significant or not.
+
+A simple regression model has only one predictor so we don't use the **+** symbol yet. For example, let's add **lstat** as a predictor. This variable contains the percentage of population with low income status in the county.
+
+```{r}
+lm.fit <- lm(medv ~ lstat, 
+             data = Boston) # Using the fixed data set Boston
+summary(lm.fit)
+```
+
+Notice that we specify the data set in the formula. This is convenient because it allows us to run the same model with a different dataste very quickly. But, alternatively, you could attach the data to the environment and you would no longer need to specify the dataset in the formula:
+
+```{r}
+#| eval: false
+
+attach(Boston)
+lm.fit <- lm(medv ~ lstat)
+```
+
+## The lm() Object
+
+The `lm()` function will yield an **lm** object, which we are naming **lm.fit**. This object contains properties (i.e., data) and methods (i.e., functions) to help us extract information from the model and do things like plotting, testing, etc. Let's extract some information from **lm.fit**. Ket's start by displaying the object itself.
+
+```{r}
+lm.fit # Bare bones information
+```
+
+The `summary()` function always provide a summary of the most important properties stored in the model, which you would be expected to need in an analysis.
+
+```{r}
+summary(lm.fit) # Display the summary of results
+```
+
+You can inspect the coefficients visually too with the `coefplot()` library and function. The dot represents the coefficient and the bands represent the confidence interval. If the confidence interval does not cross the 0 vertical line, then the coefficient is significant.
+
+```{r}
+require(coefplot)
+coefplot(lm.fit)
+```
+
+In the outup above we can see all coefficients, their respective standard errors and p-values. We can also see all key fit statistics for the regression model. If we want more specific data, we can use various functions.
+
+For example, the `names()` function gives you a list of properties contained in the object:
+
+```{r}
+names(lm.fit) # List all the properties of the lm.fit object
+```
+
+Each of these contains useful data, for example the regression coefficients:
+
+```{r}
+lm.fit$coefficients 
+```
+
+The regression formula:
+
+```{r}
+lm.fit$call # Regression formula
+```
+
+The first 12 residual values:
+
+```{r}
+lm.fit$residuals[1:12] # First 12 residual values
+```
+
+The first 12 predicted values:
+
+```{r}
+lm.fit$fitted.values[1:12] # First 12 predicted values
+```
+
+You can also use functions to extract data, for example, the coefficients:
+
+```{r}
+coef(lm.fit)
+```
+
+```{r}
+confint(lm.fit) # Confidence intervals for the coefficients
+```
+
+To inspect the object in more detail you can use the `str()` function to display the whole structure of the object:
+
+```{r}
+str(lm.fit) # So, for example, use:
+```
+
+## The summary() Object
+
+Another interesting aspect is that when we create the `summary()` object, we can also extract data from this object, in addition to the data from **lm.fit** for example:
+
+```{r}
+lm.sum <- summary(lm.fit) # Store the summary in an object
+names(lm.sum) # Try str(lm.sum) on your own too
+```
+
+Notice all the data we can extract from the `summary()` object, which we saved with the name **lm.sum**. For example:
+
+```{r}
+lm.sum$r.squared
+lm.sum$adj.r.squared # Adjusted R-Squared
+lm.sum$coefficients["lstat","Pr(>|t|)"] # p-value for lstat
+```
+
+Notice that the `$coefficients` of **lm.sum** are different than those of **lm.fit**. The former is a data frame with coefficients, standard errors, p-values, etc. Let's say that you want to print standard errors for each coefficient. You just need to get the second column of the dataframe:
+
+```{r}
+lm.sum$coefficients # The whole data frame
+cat("\n")
+
+lm.sum$coefficients[, 2] # Just the standard error in the second column
+```
+
+Now, let's do a little computational statistics and print a table with the actual 95% confidence interval, which is the coefficient +/- 2 standard errors:
+
+```{r}
+# Coefficient - 2 * Standard error
+low.coef <- lm.sum$coefficients[, 1] - 2 * lm.sum$coefficients[, 2]
+
+# Coefficient + 2 * Standard error
+hi.coef <- lm.sum$coefficients[, 1] + 2 * lm.sum$coefficients[, 2]
+
+cbind("From" = low.coef, "To" = hi.coef)
+```
+
+## Useful Regression Plots
+
+### Residual Plots
+
+The `plot()` function is what we call a **polymorphic** function. It sounds strange, but it means something simple. It means that the function will behave differently, depending what type of object we feed into it. For example, this function will simply yield a scatter plot:
+
+```{r}
+plot(medv ~ lstat, 
+     data = Boston)
+```
+
+To get general help on the `plot()` function, you can type `?plot` in the console. But since `plot()` is **polymorphic** you can get specific help for the type of object you want to plot. For example, to get help on `plot()` for `lm()` objects, type `?plot.lm`. In general, a `?function.` followed by the object type, will provide help specific to that object.
+
+But the same function, when applied to an `lm()` object yields 4 key residual plots from the regression model. Notice that I subdivide the plot display into 4 panes with the `par()` function, otherwise I would get 4 large plots one after another. Please remember to reset the display to 1 row x 1 column:
+
+```{r}
+par(mfrow = c(2, 2)) # Divide the output into a 2x2 frame by row
+plot(lm.fit) # Display 4 important regression diagnostic plots
+par(mfrow = c(1, 1)) # Restore the output window
+```
+
+Inspecting regression plots is very important in OLS regression modeling because they provide useful information to evaluate the model assumptions:
+
+1.  Residual plot (inspect dispersion of residuals)
+2.  Residual qqplot (inspect normality of resituals)
+3.  Standardized residual (square root) plot -- same as (1) but residuals are divided by their standard deviations
+4.  shows the influence of outliers -- observations that fall outside the dotted lines (Cook's distance) have too much influence on the slope of the regression line.
+
+If you are only interested in one of the plots, say the second one, you use `which = 2`:
+
+```{r}
+plot(lm.fit, which = 2)
+```
+
+You can also inspect if the residuals are normally distributed with a histogram:
+
+```{r}
+hist(lm.fit$residuals)
+```
+
+### Plot the Data and Regression Line
+
+```{r}
+plot(medv ~ lstat, 
+     data = Boston) # Plot the (x,y) data
+
+abline(a = mean(Boston$medv), 
+       b = 0, 
+       lwd = 3) # Line at the mean of medv
+
+abline(lm.fit, col = "red") # Draw a red regression line through the plot
+```
+
+You can change the color of the line (e.g., `col = "red"`), the thickness (e.g., `lwd = 3`), the type (e.g., `lty = "dotted"`), dot size (e.g., `pch = 20`), or symbol to use instead of a dot (e.g., `pch = "+"`). Try these on your own. But note that you can only visualize regression lines with a single predictor.
+
+## Making Predictions With the Fitted Model
+
+The `predict()` function displays predicted values from a model for all data points. I'm just displaying the first 12 belos:
+
+```{r}
+predict(lm.fit)[1:12]
+```
+
+If you also want to display the lower and upper bounds of the respective 95% confidence intervals for these predictions, use (note that we use a comma at the end to get all 3 columns of the `predict()` object:
+
+```{r}
+predict(lm.fit, 
+        interval = "confidence")[1:12, ]
+```
+
+IF you want predicted values with confidence intervals for 3 new data points for lstat of, say 5, 10 and 15, you have 2 opetions:
+
+```{r}
+predict(lm.fit, 
+        data.frame(lstat = (c(5, 10, 15))), 
+        interval = "confidence")
+cat("\n")
+
+predict(lm.fit, 
+        data.frame(lstat = (c(5, 10, 15))), 
+        interval = "prediction")
+```
+
+`interval = "confidence"` provides the range of values representing a 95% probability (by default) that the model will predict values within that interval. If the interval does not include 0, then the coefficients are significant at the **p \< 0.05** level. This is your confidence interval of what the model is likely to predict.
+
+To get other confidence levels, e.g. 99%, use the `level =` attribute:
+
+```{r}
+predict(lm.fit, 
+        data.frame(lstat = (c(5, 10, 15))), 
+        interval = "confidence", 
+        level = 0.99)
+```
+
+`interval = "prediction"` works a little different. It provides the 95% probability that an **actual prediction** will fall in the interval range. This is your confidence that an actual prediction will fall in that range. Generally, prediction intervals are larger that confidence intervals because they need to account for the variance in the outcome variable.
+
+**Technical note** on fitting and predicting models. For now, we are using the full data set (e.g., Boston) to fit the model and to make predictions. Later on, we will split the data set into training (e.g., Boston\[train,\]) and test (e.g., Boston\[-train,\]) subsamples, and then fit or train the model with the training subsample and test it with the test subsample. This is called **cross-validation** which is central to **machine learning**.
+
+### Quick Simple Regression Examples
+
+#### Boston Housing Data Set
+
+```{r}
+library(MASS) # Contains the Boston dataset
+lm.fit <- lm(medv ~ rm, 
+             data = Boston)
+summary(lm.fit)
+```
+
+Let's do some plotting:
+
+```{r}
+plot(medv ~ rm, 
+     data = Boston, 
+     main = "Regression for Boston House Values", 
+     xlab = "No Rooms", ylab = "Median Value $000")
+abline(lm.fit, col = "red" )
+```
+
+#### Hitters Baseball Player Salary Dataset
+
+```{r}
+library(ISLR) # Contains the Hitter dataset
+Hitters <- na.omit(Hitters) # Need to remove several omitted values
+lm.fit <- lm(Salary ~ HmRun, 
+             data = Hitters) # Using home runs to predict salaries
+summary(lm.fit) # Home runs has a positive significant effect
+```
+
+The results show that home runs have a significant effect on players' salaries. For each additional home run, on average, a player's salary goes up by \$17,671.
+
+Now, let's plot the regression, first the data points
+
+```{r}
+plot(Salary ~ HmRun, 
+     data = Hitters, 
+     cex = 0.5, 
+     xlab = "X (Predictor)", 
+     ylab = "Y (Outcome)")
+abline(a = mean(Hitters$Salary), 
+       b = 0) # Line at the mean of medv
+abline(lm.fit, col = "red") # Draw the regression line on the plot
+```
+
+# 5. Bi-Variate Regression with a Dummy Variable
+
+In the **Carseats** dataset in the `{ISLR}` library, **Price** is a continuous variable and **US** is a binary variable (`Yes = 1`, `No = 0`). You can inspect the dataset by typing `?Carseats` on the console.
+
+```{r}
+#| message: false
+
+library(ISLR) # Contains the "Carseats" data set
+
+lm.fit <- lm(Sales ~ Price + US, 
+             data = Carseats)
+
+summary(lm.fit)
+```
+
+The results suggest that, on average and holding car seat origin constant, for every \$1 increase in price, the total sales in the average location goes down by 54 units. Similarly, on average and holding price constant, a US car seat sells 1,199 more units than a non-US car seat.
+
+**Technical note:** The binary variable **US** has two possible categorical (i.e., factor) values, **Yes** or **No**. When you model a categorical variable like this, R quantifies the model by creating two dummy variables by combining the variable name along with the respective categorical variables. In this case, it creates one variable called **USNo** with a value of 1 if the car seat is not from the US, and 0 otherwise. It also creates another variable called **USYes** with a value of 1 if the car seat is from the US, and 0 otherwise. Because USNo and USYes are perfectly linearly related (i.e., if one is 1 the other one has to be 0), it drops the first one alphabetically (i.e., USNo) from the model, which is why we see a predictor named **USYes**, not **US**. The intercept captures the effect of USNo (i.e., USYes = 0) when all predictors are 0. And the coefficient for USYes captures the difference in sales for US car seats, compared to non-US car seats.
+
+# 6. Multiple Linear Regression
+
+Just about everything discussed up to this applies to multivariate regressions. We just need to refine the wording in the interpretation a bit. Suppose that, as before, we want to predict median values of houses in Boston counties. But this time we anticipate that **lstat** may not be the only predictor, but that crime rate (**crim**), proportion of homes build prior to 1940 and proximity to the Charles River (**Chas**, 0 or 1) may have an affect on home values. The model syntax is the same as for simple linear models, but now we have more than one predictor, separated with the **+** operator
+
+```{r}
+lm.fit <- lm(medv ~ lstat + crim + age + chas, 
+             data = Boston) 
+summary(lm.fit) # Display regression output summary
+```
+
+You can inspect the coefficients visually too:
+
+```{r}
+library(coefplot)
+coefplot(lm.fit)
+```
+
+To run a multiple regression on all available variables use the dot **"."**. Also note that we are including the parameter `correlation = T` to display a correlation matrix along with the regression output.
+
+```{r}
+lm.fit <- lm(medv ~ ., 
+             data = Boston) 
+summary(lm.fit, correlation = T) 
+coefplot(lm.fit)
+```
+
+The respective p-values show that predictors of interest like **chas**, **lstat**, etc. are significant. The effect of **lstat** can now be interpreted as follows: on average and **holding all other variables constant**, when the population of lower income status increases by one percentage point, the median value of houses are \$524 lower. The one thing different in this interpretation is the term **holding all other variables constant**, which basically says that the effect of **lstat** is indpendent of the other predictors because we are **controlling for** them.
+
+Naturally, we can access the properties inside **lm.fit** and extract useful information, such as coefficients and confidence intervals:
+
+```{r}
+coef(lm.fit) # Display only the regression coefficients
+cat("\n")
+confint(lm.fit) # Display only the confidence intervals
+```
+
+We can also inspect the residual plots:
+
+```{r}
+par(mfrow = c(2, 2))
+plot(lm.fit)
+par(mfrow = c(1, 1))
+```
