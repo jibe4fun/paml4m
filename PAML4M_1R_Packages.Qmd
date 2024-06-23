@@ -1,0 +1,251 @@
+---
+title: "Appendix R: R Packages"
+author: "J. Alberto Espinosa"
+date: "6/22/2024"
+
+format: 
+   html:
+     toc: true
+     toc-depth: 2
+     toc-expand: 2
+     toc-location: right
+
+fig-width: 10
+fig-height: 6
+fontsize: 10pt
+code-overflow: wrap
+geometry: "left = 2cm, right = 2cm, top = 2cm, bottom = 2cm"
+
+echo: true
+include: true
+warning: false
+message: false
+
+abstract: This quarto file contains installation commands and instructions for all the packages associated with the PAML4M book. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+---
+
+# Introduction
+
+Packages are necessary to invoke functions in R. In order to use a function in R, you must first install the associated package. This is a one-time installation and, once you do, you don't need to install the package again, unless you want to or need to update the package to its newer version. A package contains one or more libraries and datasets. The datasets are available for use once you load the associated library. All the libraries contained in a package are available for use once the package has been installed. However, to use a library you need to **call** or **load** the library. A library constains one or many R functions that are available for use once the library has been loaded. It is important to note, that all active libraries are closed when you terminate your R session, so you need to load them again if you want to use them when you re-start an R session. Please also note that there are packages and libraries liks `{stat}` and `{datasets}` that load automatically when you start an R session and, therefore, you don't need to install or load them to use them.
+
+# Vignettes
+
+All packages have documentation available on the web or using the `help()` or `?` commands. However, oftentimes, the documentation for packages is cryptic, incomplete and/or difficult to follow. Often, package authors write **vignettes** which contain more complete documentation and user guides. To view vignettes available for various pacakges, enter:
+
+```{r}
+#| eval: false
+browseVignettes()
+```
+
+To view the vignette associated with a particular package you installed, enter:
+
+```{r}
+#| eval: false
+browseVignettes("car") # Vignette for the package "car"
+```
+
+# R Markdown
+
+You need to install the `{rmarkdown}` package to use R Markdown, which you can use to create R Markdown **.Rmd** and knit them into Word, HTML, PDF and other files, as follows:
+
+```{r}
+#| eval: false
+install.packages("rmarkdown")
+```
+
+The `{bookdown}` package works in conjunction with R Markdown to knit multiple R Markdown files into a single book. install it, enter:
+
+```{r}
+#| eval: false
+install.packages("bookdown")
+```
+
+# R Quarto
+
+Quarto is the newest R Studio application to develop R scripts in **.Qmd** files, which can be easily formatted, knitted and also used to compile multiple **.Qmd** files into a single book. Quarto has several advantages over R Markdown. First, it works with various programming languages like R, Python and Julia. Also, it can be used to knit single marked down files or compile multiple marked down files. In addition, you can edit your script in either **Source** of **Visual** mode by clicking on the respective button.
+
+Quarto is bundled with RStudio v2022.07.1 and higher, so there is no need to install it or update it. Using R Markdown or Quarto is a matter of preference. Quarto is preferred if you plan to use both R and Python. It is also superior to R Markdown for formatting documents and books. For most practical purposes, R Markdown works well and will continue to be supported by R Studio for the foreseeable future. But I highly recommend using Quarto rather than R Markdown.
+
+# Packages Needed to Work with the PAML4M Book.
+
+I recommend installing all the packages below before you start working with the PAML4M book. This way you will have all the necessary libraries, functions and datasets to follow the book contents. I also recommend installing the package one at a time by placing the cursor in the respective installation command and entering Ctrl-Enter. This is useful to observe any installation warnings or error messages, so that you get some assurance that the packages were properly installed.
+
+```{r}
+#| eval: false
+
+install.packages("AppliedPredictiveModeling") # Contains datasets for that book
+install.packages("car") # Companion to Applied Regression, with vif() function
+install.packages("coefplot") # Regression Coefficient Plots
+install.packages("corrplot") # Graphical Display of Correlation Matrix
+install.packages("ctv") # Task Viewing for Multiple Package Installations
+install.packages("DataCombine") # Tools for Combining and Cleaning Data Sets
+install.packages("DAAG") # Package that contains CV testing for lm() objects
+install.packages("dygraphs") # Interactive visualizations
+install.packages("dplyr") # Data manipulartion
+install.packages("expss") # Tables with labels, e.g., cross-tabs
+install.packages("GGally") # Extends the ggplot packaage for graphics
+install.packages("gbm") # Generalized Boosted Regression Models
+install.packages("ggplot2") # Sophisticated Grammar of Graphics
+install.packages("glmnet") # Ridge, LASSO and other GLM regressions
+install.packages("HH") # Heiberger & Holland Various Statistical Tasks
+install.packages("Hmisc") # Miscellaneous Data Analysis Functions
+install.packages("ISLR") # Companion and data sets for ISLR textbook
+install.packages("ISLR") # Companion and data sets for ISLR textbook
+install.packages("klaR") # Conidion index multi-collinearity testing
+install.packages("lattice") # Data visualization functions
+install.packages("lm.beta") # Standardized regression coefficients
+install.packages("lmtest") # Breusch-Pagan heteroskedasticity test and others
+install.packages("leaps") # Search for best regression subsets
+install.packages("MASS") # Modern Applied Statistics (and data sets) with S 
+install.packages("neuralnet") # To train, plot and test neural networks
+install.packages("olsrr") # Tools for OLS regression analysis
+install.packages("pls") # PLS and PCR regressions
+install.packages("pROC") # ROC curves
+install.packages("psych") # Psychology statistical proceures
+install.packages("randomForest") # Bagged, Random Forest and other trees
+install.packages("rjson") # For reading .json (Javascript Object Notation) files
+install.packages("ROCR") # ROC curves
+install.packages("tidyverse") # Set of packages for data work
+install.packages("tree") # Classification and regression trees
+install.packages("VGAM") # For multinomial logistic and other models
+install.packages("brnn") # Bayesian Regularized Neural Networks 
+install.packages("reticulate") # To run Python code inside R Studio
+
+# The {caret} package below does not contain any functions, but it is a very useful package because it can call just about any machine learning function in other packages with very simple commands simply by setting the proper parameters in the train() function. This is a very useful library to train and test models with machine learning and cross-validation.
+
+install.packages("caret") # Classification and Regression Training
+```
+
+# Other Packages in the ISLR Book
+
+The PAML4M book and its appendices use a few of the datasets provided by the authors of the **Introduction to Statistical Learning (ISLR)**. This is an excellent book written by some of the top scholars in **statistical learning**. The book comes with its own **{ISLR}** package and datasets, some of which I use examples in this book. Please install this package so that you get access to the included data samples.
+
+For a **free PDF copy** of this excellent book see:
+
+[Introduction to Statistical Learning](https://www.statlearning.com).
+
+These are some {ISLR} useful datasets, but not referred to in the PAML4M book, in case you are interested:
+
+```{r}
+#| eval: false
+
+install.packages("gam")
+install.packages("akima")
+install.packages("e1071")
+install.packages("stargazer") # To format multiple regression models output
+```
+
+Other packages, not referred to in the PAML4M book, but which are useful and I may cover in other tutorials:
+
+```{r}
+#| eval: false
+
+install.packages("BaylorEdPsych") # Package with useful data sets
+
+# Structural Equation Modeling
+
+install.packages("lavaan") # Package for structural equation models (SEM)
+install.packages("MVN") # For plotting histograms
+install.packages("plspm") # ** PLS for Path Modeling with SEM
+install.packages("semPlot") # ** Plot SEM diagrams
+
+# Text Analytics 
+
+install.packages("irlba")
+install.packages("quanteda")
+install.packages("SnowballC")
+install.packages("tm")
+install.packages("wordcloud")
+
+# Packages with Interesting Datasets
+
+install.packages("nycflights13") # 2013 flights originating in NYC
+
+# Packages for reading data
+
+install.packages("data.table")
+install.packages("XML")
+install.packages("xlsx")
+install.packages("xlsxjars")
+install.packages("rJava")
+```
+
+# Loading and Using Libraries
+
+Load the desired libraries only when needed and note that all packages are unloaded when you terminate your R session, so they need to be loaded again when you re-start R.
+
+```{r}
+#| eval: false
+
+# Libraries with datasets
+
+library(AppliedPredictiveModeling)
+library(car)
+library(caret)
+library(DataCombine)
+library(GGally)
+library(ggplot2)
+library(glmnet)
+library(HH)
+library(ISLR)
+library(lattice)
+library(lm.beta)
+library(lmtest)
+library(MASS)
+library(perturb)
+library(psych)
+library(VGAM)
+library(neuralnet)
+
+# Libraries without datasets or with not so interesing data
+
+library(rmarkdown)
+library(coefplot)
+library(corrplot)
+library(ctv)
+library(expss)
+library(gbm)
+library(Hmisc)
+library(leaps)
+library(MASS)
+library(perturb)
+library(pls)
+library(ROCR) 
+library(pROC) 
+library(tree)
+library(stargazer)
+```
+
+# Viewing Datasets
+
+```{r}
+#| eval: false
+
+# To view all available data sets in loaded libraries use:
+
+data()
+
+# To view the data sets in one package, e.g., ISLR, type:
+
+data(package = "ISLR")
+
+# To view all available data sets in all available packages:
+
+data(package = .packages(all.available = TRUE))
+
+# To inspect a data set, e.g., Boston, in a loaded library (e.g., ISLR) type:
+
+?Boston
+
+# To view a data set, load it and view it:
+
+data(Boston)
+View(Boston) # Cap V
+
+# Sites with data:
+
+browseURL("https://www.kaggle.com/")
+browseURL("https://catalog.data.gov/dataset")
+browseURL("http://www.jeremymiles.co.uk/regressionbook/data/")
+browseURL("https://vincentarelbundock.github.io/Rdatasets/datasets.html")
+```
