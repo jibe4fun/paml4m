@@ -2,10 +2,10 @@
 title: "Appendix R7A: Dimensionality - Regularization"
 subtitle: "Penalized Models: Ridge and LASSO Regressions"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -22,7 +22,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about predictive modeling methods based on regularization, also known as shrinkage or penalized models. I will describe three methods -- Ridge Regression and LASSO, and Elastic Nets, which is a blend of Ridge and LASSO. These models aim to correct issues of dimensionality, such as severe multicollinearity. An important thing to note is that these methods shrink the regression coefficients intentionally to bias the predictor coefficients to improve the model variance. Naturally, the more we shrink the coefficients, the more we bias the model. Cross-validation will help us identify the optimal amount of shrinkage in when the model variance is minimized. It is important to note that the more we shrink the model coefficients, the less useful the model becomes for interpretation and explainability. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+abstract: This Quarto document contains R code examples about predictive modeling methods based on regularization, also known as shrinkage or penalized models. I will describe three methods -- Ridge Regression and LASSO, and Elastic Nets, which is a blend of Ridge and LASSO. These models aim to correct issues of dimensionality, such as severe multicollinearity. An important thing to note is that these methods shrink the regression coefficients intentionally to bias the predictor coefficients to improve the model variance. Naturally, the more we shrink the coefficients, the more we bias the model. Cross-validation will help us identify the optimal amount of shrinkage in when the model variance is minimized. It is important to note that the more we shrink the model coefficients, the less useful the model becomes for interpretation and explainability. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*

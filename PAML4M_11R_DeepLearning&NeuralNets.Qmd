@@ -2,7 +2,7 @@
 title: "Appendix R11: Deep Learning and Neural Networks"
 subtitle: "Neural Networks"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
    pdf:
@@ -21,7 +21,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about deep learning (DL) and artificial neural networks (ANNs). ANNs are very complex internally, but they are relatively easy to train. ANNs are non-parametric models, so we don't need to be concerned with assumption testing, but on the other hand, they are not very good for interpretations. However, they can be extremely accurate for predictions, provided that you use an effective ANN architecture, thus their popularity. The ANN architecture is based on how many layers you specify in the model and how many neurons are contained in each layer. ANNs can be used for quantitative or classification outcomes. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+abstract: This Quarto document contains R code examples about deep learning (DL) and artificial neural networks (ANNs). ANNs are very complex internally, but they are relatively easy to train. ANNs are non-parametric models, so we don't need to be concerned with assumption testing, but on the other hand, they are not very good for interpretations. However, they can be extremely accurate for predictions, provided that you use an effective ANN architecture, thus their popularity. The ANN architecture is based on how many layers you specify in the model and how many neurons are contained in each layer. ANNs can be used for quantitative or classification outcomes. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
@@ -138,7 +138,7 @@ Notes on `neuralnet()` key attributes (the values shown are the defaults, which 
 
 Let's start by loading the `{neuralnet}` library and training a NN with only 1 neuron and 1 layer (i.e., we omit the `hidden = 1` parameter because it is the default.
 
-**Technical Note:** Notice that I used the parameter `rep = "best"` in the `plot()` function. The reason for this is that, even if you only us `rep = 1`, `neuralnet()` doesn't know which repetition to graph. So, if you render the plot from the code chunk by pressing the play icon, the graph will render fine, but will not print when you knit into a document. Adding the `rep = "best"` parameter tells knitr to graph the best of the repetitions. In a nutshell, if you want the graphs to print in the knitted document, you must include this parameter in the `plot()` function.
+**Technical Note:** Notice that I used the parameter `rep = "best"` in the `plot()` function. The reason for this is that, even if you only use `rep = 1`, `neuralnet()` doesn't know which repetition to graph. So, if you render the plot from the code chunk by pressing the play icon, the graph will render fine, but will not print when you knit into a document. Adding the `rep = "best"` parameter tells knitr to graph the best of the repetitions. In a nutshell, if you want the graphs to print in the knitted document, you must include this parameter in the `plot()` function.
 
 Let's start with simple shallow learning NN with 1 layer and 1 neuron:
 

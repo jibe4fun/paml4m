@@ -2,10 +2,10 @@
 title: "Appendix R7B: Dimensionality - Dimension Reduction"
 subtitle: "Principal Components and Partial Least Squares Regressions"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -22,7 +22,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about predictive modeling methods based on dimension reduction -- Principal Components Regression (PCR) and Partial Least Squares Regression (PLSR). These models aim to correct issues of dimensionality, such as severe multicollinearity. In contrast to Ridge and LASSO, which shrink all coefficients to different lambda values, PCR and PLSR decompose the predictors into components, with each component being a linear weighted combination of all predictors. In general, the first component in either method is the one that captures the largest amount of variance in the predictors. The second component captures the second largest variance, and so on. If the first M components capture a large portion of the P predictor's variance (e.g., 70%) and M << P, then we would accomplish a substantial amoung of dimension reduction. It is important to note that as we add more more components, the model becomes closer to the OLS model. That is, a model with few component has more bias and less variance, thus less useful for interpretation, whereas a model with lots of component has less bias but more variance. Again, Cross-Validation can help us evaluate the optimal number of componentts to use. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). 
+abstract: This Quarto document contains R code examples about predictive modeling methods based on dimension reduction -- Principal Components Regression (PCR) and Partial Least Squares Regression (PLSR). These models aim to correct issues of dimensionality, such as severe multicollinearity. In contrast to Ridge and LASSO, which shrink all coefficients to different lambda values, PCR and PLSR decompose the predictors into components, with each component being a linear weighted combination of all predictors. In general, the first component in either method is the one that captures the largest amount of variance in the predictors. The second component captures the second largest variance, and so on. If the first M components capture a large portion of the P predictor's variance (e.g., 70%) and M << P, then we would accomplish a substantial amoung of dimension reduction. It is important to note that as we add more more components, the model becomes closer to the OLS model. That is, a model with few component has more bias and less variance, thus less useful for interpretation, whereas a model with lots of component has less bias but more variance. Again, Cross-Validation can help us evaluate the optimal number of componentts to use. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*

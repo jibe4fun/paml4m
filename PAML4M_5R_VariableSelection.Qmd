@@ -2,10 +2,10 @@
 title: "Appendix R5: Variable Selection"
 subtitle: "Multi-Collinearity, Subset Selection and Step Methods"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -22,7 +22,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about testing for violations of the OLS assumption of predictor independence and also to begin the process of selecting variables for your model. We illustrate a few popular methods to do systematic variable selection. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+abstract: This Quarto document contains R code examples about testing for violations of the OLS assumption of predictor independence and also to begin the process of selecting variables for your model. We illustrate a few popular methods to do systematic variable selection. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
@@ -65,6 +65,7 @@ library(MASS) # Contains the Boston housing market data set
 Let's first fit the full model:
 
 ```{r}
+options(scipen = 4)
 lm.fit <- lm(medv ~ ., data = Boston)
 summary(lm.fit)
 ```

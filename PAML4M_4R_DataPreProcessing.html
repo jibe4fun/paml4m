@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="J. Alberto Espinosa">
+<meta name="dcterms.date" content="2025-01-04">
+
+<title>Appendix R4: Data Pre-Processing</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="PAML4M_4R_DataPreProcessing_files/libs/clipboard/clipboard.min.js"></script>
+<script src="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/quarto.js"></script>
+<script src="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/popper.min.js"></script>
+<script src="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/anchor.min.js"></script>
+<link href="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="PAML4M_4R_DataPreProcessing_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="PAML4M_4R_DataPreProcessing_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="PAML4M_4R_DataPreProcessing_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="PAML4M_4R_DataPreProcessing_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="2">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#transformation-categorical-to-binary-variable-predictors" id="toc-transformation-categorical-to-binary-variable-predictors" class="nav-link" data-scroll-target="#transformation-categorical-to-binary-variable-predictors">1. Transformation: Categorical To Binary Variable Predictors</a>
+  <ul class="collapse">
+  <li><a href="#the-dummy-variable-trap" id="toc-the-dummy-variable-trap" class="nav-link" data-scroll-target="#the-dummy-variable-trap">The Dummy Variable Trap</a></li>
+  <li><a href="#re-leveling" id="toc-re-leveling" class="nav-link" data-scroll-target="#re-leveling">Re-Leveling</a></li>
+  </ul></li>
+  <li><a href="#transformation-polynomials" id="toc-transformation-polynomials" class="nav-link" data-scroll-target="#transformation-polynomials">2. Transformation: Polynomials</a></li>
+  <li><a href="#transformation-log-models" id="toc-transformation-log-models" class="nav-link" data-scroll-target="#transformation-log-models">3. Transformation: Log Models</a>
+  <ul class="collapse">
+  <li><a href="#inspecting-for-normality" id="toc-inspecting-for-normality" class="nav-link" data-scroll-target="#inspecting-for-normality">Inspecting for Normality</a></li>
+  </ul></li>
+  <li><a href="#transformation-count-data" id="toc-transformation-count-data" class="nav-link" data-scroll-target="#transformation-count-data">4. Transformation: Count Data</a></li>
+  <li><a href="#transformation-centering-data" id="toc-transformation-centering-data" class="nav-link" data-scroll-target="#transformation-centering-data">5. Transformation: Centering Data</a></li>
+  <li><a href="#transformation-standardizing-data" id="toc-transformation-standardizing-data" class="nav-link" data-scroll-target="#transformation-standardizing-data">6. Transformation: Standardizing Data</a>
+  <ul class="collapse">
+  <li><a href="#standardized-regression" id="toc-standardized-regression" class="nav-link" data-scroll-target="#standardized-regression">Standardized regression</a></li>
+  </ul></li>
+  <li><a href="#transformation-lagging-data" id="toc-transformation-lagging-data" class="nav-link" data-scroll-target="#transformation-lagging-data">7. Transformation: Lagging data</a>
+  <ul class="collapse">
+  <li><a href="#testing-for-serial-correlation" id="toc-testing-for-serial-correlation" class="nav-link" data-scroll-target="#testing-for-serial-correlation">Testing for Serial Correlation</a></li>
+  <li><a href="#correcting-for-serial-correlation" id="toc-correcting-for-serial-correlation" class="nav-link" data-scroll-target="#correcting-for-serial-correlation">Correcting for Serial Correlation</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Appendix R4: Data Pre-Processing</h1>
+<p class="subtitle lead">Basic Data Transformations: WLS, GLM, Logistic and Trees</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>J. Alberto Espinosa </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 4, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="abstract-title">Abstract</div>
+    This Quarto document contains R code examples about data pre-processing, with a focus on data transformations and models that address some issues with OLS assumption when they don’t hold, such as categorical predictors, polynomial models, log transformations, count data models, centered and standardized regressions, and lagged and time series model (testing for serial correlation). For the corresponding conceptual material associated with these appendinces, consult the main book <a href="https://www.amazon.com/dp/B0C2RX8NY1">Predictive Analytics and Machine Learning for Managers</a>. Chat with the PAML4M book and its related lecture slides and R scripts with its companion <a href="https://poe.com/PAML4M">PAML4M ChatBot</a>.
+  </div>
+</div>
+
+</header>
+
+<p><em>This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author’s permission.</em></p>
+<section id="overview" class="level1">
+<h1>Overview</h1>
+<p>According to experienced analysts, on average, about 80% of analytics project is devoted to the necessary data work before analysis can be done. This is generally referred to as feature engineering, data engineering, data wrangling or data pre-processing, among other terms. There are many reasons to do pre-processing and various types of pre-processing that can be done. But these can be generally classified into two broad categories: (1) data quality; and (2) data transformations.</p>
+<p>Data quality pre-processing involves things like: missing data; data curation; data cleansing; inconsistencies; inappropriate data formats or spelling/punctuation issues, etc. A lot of the data quality work in data pre-processing are often done with the analytical tools, as they all have data evaluations and manipulation tools. But the most effective ways of working with data is the realm of database and big data fields, and it is a key skill in the data science profession.</p>
+<p>In this section, I will focus on <strong>data transformations</strong>. These have to do with data manipulations that are convenient or necessary to:</p>
+<ul>
+<li><p>Conform to particular model assumptions (e.g., lagged models in forecasting; weighted regression models to correct for heteroscedasticity, etc.);</p></li>
+<li><p>Improve the predictive accuracy of a model (e.g., logs, Box-Cox, etc.); and</p></li>
+<li><p>Convert categorical and other non-quantitative data into quantitative data that can be used for statistical analysis (e.g., categorical to dummy variables, word counts, etc.)</p></li>
+</ul>
+<p>While it is often necessary or desirable to transform predictor variables, many regression models are robust when it comes to predictor variables (e.g., predictor variables often don’t need to be normally distributed). In contrast, dependent variables must be transformed to the correct types of values for the particular model. For, example, if the dependent variable is binary or categorical, you must transform the outcome variable and use a logistic, discriminant or other classification models. Good news: R makes this very easy.</p>
+</section>
+<section id="transformation-categorical-to-binary-variable-predictors" class="level1">
+<h1>1. Transformation: Categorical To Binary Variable Predictors</h1>
+<p>Categorical variables (e.g., states, categories, etc.) are not quantitative and they cannot be used as is for statistical analysis. Categorical data has to be converted into some form of quantitative data. If the dependent variable is qualitative then you need to employ classification methods like multinomial Logistic regression. When a predictor is categorical you can use the data with some conversions. R makes this very easy.</p>
+<p>The most common way to work with categorical variables is to create binary (i.e., dummy) variables. For example, if you have 50 states and you want to analyze whether the state where a house is located has an effect on the house value, you can create 50 dummy variables, one for each state. For example, if you have a categorical variable named <code>state</code> that contains states (e.g., MD, VA, NY) where houses are located, you can create a variable named stateMD, containing a value of 1 if the state is Maryland and 0 otherwise; a variable named state_VA will take a value of 1 if the state is Virginia and 0 otherwise; and so on.</p>
+<p>Each state dummy variable can be constructed in a similar manner. You would then leave one of these variables out of the model to serve as the “baseline” or “reference” variable (e.g., MD). You would then include in the model the remaining 49 state dummy variables. The intercept coefficient of this model would give you the effect of the baseline or reference variable (e.g., the median housing value prediction for the state of MD). Each of the other 49 state coefficients will give you the price difference for that state, relative to the reference variable (i.e., MD). It is important to select a reference variable that is important in your analysis. For example, if I am interested in analyzing house prices in MD, I would use MD as the reference level, so that all effects on price are analyzed relative to prices in MD.</p>
+<p>There are two ways to do this: (the hard way) by creating the dummy variables yourself or (the easy way) you let R do it for you. Let’s use the <strong>Carseats</strong> data set as an example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ISLR) <span class="co"># Contains the "Carseats" data set</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In the model below, categorical variables will be converted into multiple dummy variables. The factor or categorical variable <strong>ShelveLoc</strong> has 3 values: <strong>Bad</strong>, <strong>Medium</strong> and <strong>Good</strong>. These are the shelving categories in various simulated stores and we want to understand how the shelf location affects car seat unit sales.</p>
+<p>If we include <strong>ShelveLoc</strong> in the model R will convert this into only 3 binary variables, one for each categorical value of ShelveLoc: <strong>ShelveBad</strong> with a value of 1 if the shelf location is <strong>Bad</strong> and 0 if not; <strong>ShelveLocGood</strong> with a value of 1 if the shelf location is Good and 0 otherwise; and similarly for <strong>ShelveLocMedium</strong>. Note that R will automatically name these variables with the original variable name <strong>ShelveLoc</strong> and attach a suffix equal to the categorical value for that shelf location. When the model is estimated, R will automaticall drop the first of the three dummy variables alphabetically, which is <strong>ShelveLocBad</strong> in this case, to serve as the <strong>reference level</strong>. In a few moments I will explain how to change the variable dropped from the model. But, <strong>why drop a variable?</strong></p>
+<section id="the-dummy-variable-trap" class="level2">
+<h2 class="anchored" data-anchor-id="the-dummy-variable-trap">The Dummy Variable Trap</h2>
+<p>This is a well-known problem with categorical variables. If you have a group of binary variables, which are mutually exclusive, then one of these variables is fully dependent on the others. For example if all the 49 state dummy variables have a value of 1, then the MD variable must be 1 (i.e., if it is not one of the 49 included states, it must be the excluded states). If you were to include all 50 variables, any one of these variables will be fully dependent on the other 49. This totally violates the OLS assumption of variable independence and the OLS is literally unsolvable because you would have perfect multicollinearity. This problem is commonly referred to as the <strong>Dummy Variable Trap</strong>. Older statistical software would simply hang or give you an error (the standard errors are infinite). But modern statistical software like R will detect this linear dependency and automatically exclude one of the variables to avoid the dummy variable trap. Take a look:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(Carseats<span class="sc">$</span>ShelveLoc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "factor"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">levels</span>(Carseats<span class="sc">$</span>ShelveLoc) <span class="co"># Check the unique levels of ShelveLoc</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Bad"    "Good"   "Medium"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>lm.fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(Sales <span class="sc">~</span> ., <span class="at">data =</span> Carseats)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit) <span class="co"># ShelveLocBad is the default reference category</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Sales ~ ., data = Carseats)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2.8692 -0.6908  0.0211  0.6636  3.4115 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)      5.6606231  0.6034487   9.380  &lt; 2e-16 ***
+CompPrice        0.0928153  0.0041477  22.378  &lt; 2e-16 ***
+Income           0.0158028  0.0018451   8.565 2.58e-16 ***
+Advertising      0.1230951  0.0111237  11.066  &lt; 2e-16 ***
+Population       0.0002079  0.0003705   0.561    0.575    
+Price           -0.0953579  0.0026711 -35.700  &lt; 2e-16 ***
+ShelveLocGood    4.8501827  0.1531100  31.678  &lt; 2e-16 ***
+ShelveLocMedium  1.9567148  0.1261056  15.516  &lt; 2e-16 ***
+Age             -0.0460452  0.0031817 -14.472  &lt; 2e-16 ***
+Education       -0.0211018  0.0197205  -1.070    0.285    
+UrbanYes         0.1228864  0.1129761   1.088    0.277    
+USYes           -0.1840928  0.1498423  -1.229    0.220    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.019 on 388 degrees of freedom
+Multiple R-squared:  0.8734,    Adjusted R-squared:  0.8698 
+F-statistic: 243.4 on 11 and 388 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Notice that the categorical variable ShelveLoc was automatically converted into 3 dummy variables. Also notice that ShelveLocBad (the first one alphabetically) was excluded from the model and only ShelveLocMedium and ShelveLocGood were included. Again, the excluded variable is the most important variable because it will serve as the reference level, against which all other effects are compared.</p>
+<p>Let’s parse this. The intercept represents the average sales in thousands of units for ShalveLocBad (the excluded variable), when all other variables are 0. If all dummy variables are 0, then it must be the bad location because ShelveLocBad cannot be 0 when the other dummies are 0. As with other binary variable models. All other ShelveLoc dummy variables will measure the effect of each shelve location, but relative to the intercept, which is ShelveLocBad (the reference level). That is, ShelveLocMedium shows, on average and holding everything else constant, how many more car seat thousand units will sell in a medium shelf location, compared to a bad location. Similarly, shelveLocGood shows, on average and holding everything else constant, how many more car seat thousand units will sell in a good shelf location, compared to a bad location.</p>
+<p>To see the categorical to dummy variable conversion, clearly showing that <strong>Bad</strong> is the reference level enter:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">contrasts</span>(Carseats<span class="sc">$</span>ShelveLoc) <span class="co"># Shows how the dummy variables were coded</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       Good Medium
+Bad       0      0
+Good      1      0
+Medium    0      1</code></pre>
+</div>
+</div>
+<p>You can inspect the coefficients and price differences across shelving locations visually too:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(coefplot)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">coefplot</span>(lm.fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="960"></p>
+</div>
+</div>
+</section>
+<section id="re-leveling" class="level2">
+<h2 class="anchored" data-anchor-id="re-leveling">Re-Leveling</h2>
+<p>If you want to change the baseline or reference dummy variable you can use the <code>relevel()</code> function to select the reference level variable to exclude. The value you enter in <code>ref =</code> parameter has to match an existing level in the corresponding categorical variable. data (case sensitive). For example, if you want to use “Good” as the reference level, do the following:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>Carseats<span class="sc">$</span>ShelveLoc <span class="ot">&lt;-</span> <span class="fu">relevel</span>(Carseats<span class="sc">$</span>ShelveLoc, </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">ref =</span> <span class="st">"Good"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(Sales <span class="sc">~</span> ., <span class="at">data =</span> Carseats)) <span class="co"># Check it out</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Sales ~ ., data = Carseats)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2.8692 -0.6908  0.0211  0.6636  3.4115 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)     10.5108058  0.6039582  17.403  &lt; 2e-16 ***
+CompPrice        0.0928153  0.0041477  22.378  &lt; 2e-16 ***
+Income           0.0158028  0.0018451   8.565 2.58e-16 ***
+Advertising      0.1230951  0.0111237  11.066  &lt; 2e-16 ***
+Population       0.0002079  0.0003705   0.561    0.575    
+Price           -0.0953579  0.0026711 -35.700  &lt; 2e-16 ***
+ShelveLocBad    -4.8501827  0.1531100 -31.678  &lt; 2e-16 ***
+ShelveLocMedium -2.8934679  0.1308928 -22.106  &lt; 2e-16 ***
+Age             -0.0460452  0.0031817 -14.472  &lt; 2e-16 ***
+Education       -0.0211018  0.0197205  -1.070    0.285    
+UrbanYes         0.1228864  0.1129761   1.088    0.277    
+USYes           -0.1840928  0.1498423  -1.229    0.220    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.019 on 388 degrees of freedom
+Multiple R-squared:  0.8734,    Adjusted R-squared:  0.8698 
+F-statistic: 243.4 on 11 and 388 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Notice that the coefficients ShelveLocBad and ShelveLocMedium now measure the difference in sales, compared to ShelfLocGood. Which reference level to select? If there is a category of interest, select it as the reference level because all other dummy variable effects will be relative to it. If you don’t have a category of interest, pick a reference level with the least effect on the response variable, because you will get more noticeable contrasts and stronger effects for the included variables.</p>
+</section>
+</section>
+<section id="transformation-polynomials" class="level1">
+<h1>2. Transformation: Polynomials</h1>
+<p>I cover polynomial models in much more depth in Chapter 8, but let me introduce some basic polynomial variable transformations. Let’s start by predicting median value of homes in Boston neighborhoods <strong>medv</strong>, using linear, quadratic and cubic polynomials of <strong>lstat</strong> (percentage of low income population). Notice that we use the identity function <code>I()</code> for the square and cubic transformations. This is required by R. Without the <code>I()</code>, R may not interpret the power function properly.</p>
+<p>Linear Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>lm.fit1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat, <span class="at">data =</span> Boston) </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat, data = Boston)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.168  -3.990  -1.318   2.034  24.500 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 34.55384    0.56263   61.41   &lt;2e-16 ***
+lstat       -0.95005    0.03873  -24.53   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.216 on 504 degrees of freedom
+Multiple R-squared:  0.5441,    Adjusted R-squared:  0.5432 
+F-statistic: 601.6 on 1 and 504 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Quadratic Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>lm.fit2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">+</span> <span class="fu">I</span>(lstat<span class="sc">^</span><span class="dv">2</span>), </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> Boston) </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + I(lstat^2), data = Boston)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-15.2834  -3.8313  -0.5295   2.3095  25.4148 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 42.862007   0.872084   49.15   &lt;2e-16 ***
+lstat       -2.332821   0.123803  -18.84   &lt;2e-16 ***
+I(lstat^2)   0.043547   0.003745   11.63   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.524 on 503 degrees of freedom
+Multiple R-squared:  0.6407,    Adjusted R-squared:  0.6393 
+F-statistic: 448.5 on 2 and 503 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Cubic Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>lm.fit3 <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">+</span> <span class="fu">I</span>(lstat<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(lstat<span class="sc">^</span><span class="dv">3</span>), </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> Boston)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + I(lstat^2) + I(lstat^3), data = Boston)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-14.5441  -3.7122  -0.5145   2.4846  26.4153 
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 48.6496253  1.4347240  33.909  &lt; 2e-16 ***
+lstat       -3.8655928  0.3287861 -11.757  &lt; 2e-16 ***
+I(lstat^2)   0.1487385  0.0212987   6.983 9.18e-12 ***
+I(lstat^3)  -0.0020039  0.0003997  -5.013 7.43e-07 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.396 on 502 degrees of freedom
+Multiple R-squared:  0.6578,    Adjusted R-squared:  0.6558 
+F-statistic: 321.7 on 3 and 502 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Note that the R-squared for the quadratic model is larger than the one for the linear model, and the R-squared for the cubic polynomial is larger than the quadratic. However, to evaluate if the difference is significant we need an ANOVA test (or F-test, which is similar) using the <code>anova()</code> function.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(lm.fit1, lm.fit2, lm.fit3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: medv ~ lstat
+Model 2: medv ~ lstat + I(lstat^2)
+Model 3: medv ~ lstat + I(lstat^2) + I(lstat^3)
+  Res.Df   RSS Df Sum of Sq       F    Pr(&gt;F)    
+1    504 19472                                   
+2    503 15347  1    4125.1 141.687 &lt; 2.2e-16 ***
+3    502 14616  1     731.8  25.134 7.428e-07 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The F-statistic is quite high and the p-value is &lt; 0.001 for both comparisons, so yes, the quadratic model is statistically superior to the linear model and the cubic model is superior to the quadratic model.</p>
+<p><strong>Interpretation:</strong> Interpreting a linear model is easy. Interpreting a quadratic model is not so bad. Interpreting a cubic model is trick but doable. Beyond cubic, it becomes almost impossible to interpret polynomial models and they should be used primarily when the predictive modeling goal is accuracy, but not so much for interpretability. In the cubic model above the effect of <strong>lstat</strong> is negative, so for lower values of lstat, the regression curve goes downwards. But the quadratic effect is positive, so as <strong>lstat</strong> starts getting larger, it’s square becomes really large and begins to pull the curve upwards and it may bottom out at some point. But then the cubic term is negative, so when <strong>lstat</strong> grows very large, the cubic effect will pull the curve downwards again and the curve may peak at some point. In summary, a polynomial of power n could potentially have n-1 peaks and valleys. The higher the polynomial, the curvier the regression model.</p>
+<p>If you want to do high power polynomials, it is easier to use the <code>poly()</code> function which does the same as writing out all the power conversions. However, the <code>poly()</code> function does <strong>orthogonal polynomials</strong>, which is necessary when the various polynomial terms cause severe multicollinearity. I will discuss orthoghonal polynomials in more detail in Chapter 8, but for now let’s just do standard or <strong>raw</strong> polynomials, just like we did with the <code>I()</code> function. All we need to do is to include the parameter <code>raw() = T</code>. Take for example a model with a polynomial of the 5th. power:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>lm.fit5 <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> <span class="fu">poly</span>(lstat, <span class="dv">5</span>, <span class="at">raw =</span> T), </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> Boston) </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit5) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ poly(lstat, 5, raw = T), data = Boston)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-13.5433  -3.1039  -0.7052   2.0844  27.1153 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)               6.770e+01  3.604e+00  18.783  &lt; 2e-16 ***
+poly(lstat, 5, raw = T)1 -1.199e+01  1.526e+00  -7.859 2.39e-14 ***
+poly(lstat, 5, raw = T)2  1.273e+00  2.232e-01   5.703 2.01e-08 ***
+poly(lstat, 5, raw = T)3 -6.827e-02  1.438e-02  -4.747 2.70e-06 ***
+poly(lstat, 5, raw = T)4  1.726e-03  4.167e-04   4.143 4.03e-05 ***
+poly(lstat, 5, raw = T)5 -1.632e-05  4.420e-06  -3.692 0.000247 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.215 on 500 degrees of freedom
+Multiple R-squared:  0.6817,    Adjusted R-squared:  0.6785 
+F-statistic: 214.2 on 5 and 500 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(lm.fit3,lm.fit5)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: medv ~ lstat + I(lstat^2) + I(lstat^3)
+Model 2: medv ~ poly(lstat, 5, raw = T)
+  Res.Df   RSS Df Sum of Sq      F    Pr(&gt;F)    
+1    502 14616                                  
+2    500 13597  2    1018.5 18.726 1.438e-08 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>Clearly, lm.fit5 is superior to lm.fit3, but good luck interpreting it.</p>
+</section>
+<section id="transformation-log-models" class="level1">
+<h1>3. Transformation: Log Models</h1>
+<p>Dependent variables are often logged when they have skewed distributions. A log transformation is also necessary when the outcome variable contains counts (e.g., number of applicants, number of store visitors, etc.) – see Transformation 5 below on count data. As a general rule, you should consider logging outcome variables when they cannot contain negative values (e.g., height, weight, age). For independent variables, it is generally a matter of choice and better fit, so non-negative predictors can be logged, but they don’t have to be. Sometimes, we log variables to change the interpretation from unit effects to percentage effects or to improve the statistical fit of the model. Finally, when residuals are not normally distributed, sometimes logging the outcome variable resolves this issue.</p>
+<section id="inspecting-for-normality" class="level2">
+<h2 class="anchored" data-anchor-id="inspecting-for-normality">Inspecting for Normality</h2>
+<p>Predictors with a skewed distribution don’t need to be log-transformed for a linear regression if the sample size is large (degrees of freedom &gt; 50). But with smaller samples the sample means can no longer assumed to be normal, so log transformations are recommended with non-normally distributed predictors in small samples. Let’s explore the distribution of diamond prices. We will do this visually with a histogram and a QQ Plot and quantitatively with a Shapiro-Wilk test (there are many tests of normality). <strong>Technical Note:</strong> the Shapiro-Wilk test does not work with samples over 5000, so we need to do the test on a random sample of 5000 observations.</p>
+<p>Let’s first inspect for normality visually:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) <span class="co"># Contains the "diamonds" data set</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(diamonds<span class="sc">$</span>price, </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Diamond Price"</span>, </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Price"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="960"></p>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(diamonds<span class="sc">$</span>price, <span class="at">main =</span> <span class="st">"Diamond Price"</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">qqline</span>(diamonds<span class="sc">$</span>price)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-11-2.png" class="img-fluid" width="960"></p>
+</div>
+</div>
+<p>It should be pretty obvious that diamond prices don’t follow a normal distribution. The histogram is skewed to the right, with very few really expensive diamonds and lots of cheaper ones. Also the QQ Plot shows a sharp departure of the actual data points from the theoretical straight QQ Line. The more the data departs from the line the less normal it is because the straight line has values that match the Gaussian curve formula.</p>
+<p>Now let’s test for normality quantitativel:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">shapiro.test</span>(diamonds[<span class="fu">sample</span>(<span class="fu">nrow</span>(diamonds), <span class="dv">5000</span>), ]<span class="sc">$</span>price)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Shapiro-Wilk normality test
+
+data:  diamonds[sample(nrow(diamonds), 5000), ]$price
+W = 0.80527, p-value &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Finally, the Shapiro-Wilk test is significant, so we reject the null hypothesis of normality and conclude that the data is not normally distributed. So, let’s log the price and repeat the process:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">log</span>(diamonds<span class="sc">$</span>price), </span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Diamond (Log) Price"</span>, </span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Log Price"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="960"></p>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(<span class="fu">log</span>(diamonds<span class="sc">$</span>price), </span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Diamond (Log) Price"</span>)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="fu">qqline</span>(<span class="fu">log</span>(diamonds<span class="sc">$</span>price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid" width="960"></p>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">shapiro.test</span>(<span class="fu">log</span>(diamonds[<span class="fu">sample</span>(<span class="fu">nrow</span>(diamonds), <span class="dv">5000</span>),]<span class="sc">$</span>price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Shapiro-Wilk normality test
+
+data:  log(diamonds[sample(nrow(diamonds), 5000), ]$price)
+W = 0.9635, p-value &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Interestingly, the histogram and QQ Plots show that the log transformation has made the log of diamond prices more normally distributed, to some extent. The histogram is more symmetric, but not exactly normally distributed. The QQ Plot shows that the center of the data aligns with the QQ Line but the tail ends depart from normality. These two should be acceptable criteria for a business model. But the Shapiro-Wilk test is still significant, so if we want to be rigorous about it, we would need to reject the null hypothesis of normality. But the Shapiro-Wilk test is notorious for rejecting normality with minor deviations of normality. Again, the model will be approximately correct, but if you need to be rigorous about this, you would need to try a Box-Cox transformation, but the trade off will be some loss of interpretability.</p>
+<p>Let’s look at the various log models and interpret them:</p>
+<p>Linear Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(price <span class="sc">~</span> carat, <span class="at">data =</span> diamonds)) <span class="co"># Linear model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = price ~ carat, data = diamonds)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-18585.3   -804.8    -18.9    537.4  12731.7 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) -2256.36      13.06  -172.8   &lt;2e-16 ***
+carat        7756.43      14.07   551.4   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1549 on 53938 degrees of freedom
+Multiple R-squared:  0.8493,    Adjusted R-squared:  0.8493 
+F-statistic: 3.041e+05 on 1 and 53938 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Linear-Log Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(price <span class="sc">~</span> <span class="fu">log</span>(carat), <span class="at">data =</span> diamonds)) <span class="co"># Linear-Log Model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = price ~ log(carat), data = diamonds)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6137.4 -1495.1  -328.3  1141.9 12075.3 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)  6237.84      10.73   581.2   &lt;2e-16 ***
+log(carat)   5836.02      15.21   383.8   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2066 on 53938 degrees of freedom
+Multiple R-squared:  0.7319,    Adjusted R-squared:  0.7319 
+F-statistic: 1.473e+05 on 1 and 53938 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Log-Linear Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(<span class="fu">log</span>(price) <span class="sc">~</span> carat, <span class="at">data =</span> diamonds)) <span class="co"># Log-Linear Model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(price) ~ carat, data = diamonds)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.2844 -0.2449  0.0335  0.2578  1.5642 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 6.215021   0.003348    1856   &lt;2e-16 ***
+carat       1.969757   0.003608     546   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.3972 on 53938 degrees of freedom
+Multiple R-squared:  0.8468,    Adjusted R-squared:  0.8468 
+F-statistic: 2.981e+05 on 1 and 53938 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Log-Log (Elasticity)r Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(<span class="fu">log</span>(price) <span class="sc">~</span> <span class="fu">log</span>(carat), <span class="at">data =</span> diamonds)) <span class="co"># Log-Log Model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(price) ~ log(carat), data = diamonds)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-1.50833 -0.16951 -0.00591  0.16637  1.33793 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 8.448661   0.001365  6190.9   &lt;2e-16 ***
+log(carat)  1.675817   0.001934   866.6   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.2627 on 53938 degrees of freedom
+Multiple R-squared:  0.933, Adjusted R-squared:  0.933 
+F-statistic: 7.51e+05 on 1 and 53938 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p><strong>Interpretation</strong></p>
+<p><strong>Linear Model:</strong> On average, the effect of an additional carat in a diamond is an increase in price of $7,756.</p>
+<p><strong>Linear-Log Model:</strong> On average, the effect of 1% increase in carats in a diamond is an increase in price of <code>$5836/100</code> or <code>$58.36</code>. We divide by 100 because a 1% increase is a 0.01 or 1/100 proportion increase, so we need to do the same division on the price.</p>
+<p><strong>Log-Linear Model:</strong> On average, the effect of 1 additional carat in a diamond is a <code>1.96.97*100</code> or <code>196.97%</code> increase in price. We multiply the effect because the price increases by a factor of 1.9697, which in percentage points is 100 times that.</p>
+<p><strong>Log-Log Model:</strong> On average, the effect oa 1% increase in price is a <code>1.67%</code> increase in price. We don’t need to multiply or divide by 100 because both sides of the model are in either proportions or percentages.</p>
+</section>
+</section>
+<section id="transformation-count-data" class="level1">
+<h1>4. Transformation: Count Data</h1>
+<p>This is a special case of the <strong>Log-Linear</strong> model. OLS is often used with count data, but this is incorrect because counts are not normally distributed. This is so because counts are: (1) non-negatives; (2) truncated at 0; and (3) not continuous (i.e., no decimals). Counts follow a <strong>Poisson</strong> distribution. However, if the average count is large, the Poisson curve will be very close to a normal distribution and the truncation will happen very far on the left tail and the discrete values will be very close to each other, almost like a continuous variable. So, it is not a major issue to use OLS with count data when the average count of the response variable is very large. But specifying a count model is relatively easy and you would be doing it right. When the average count is small, the truncation on the left will happen close to the mean, so it would be very incorrect to use OLS.</p>
+<p>The correct way to specify the model is to use the <strong>Generalized Linear Model (GLM)</strong> with the <code>glm()</code> function, specifying a <strong>Poisson</strong> distribution and with <code>link = "log"</code>. This link function tells the GLM to transform the outcome to a log value, essentially making the model a Log-Linear model.</p>
+<p>In the example below I use the <strong>Carseats</strong> data set from the <strong>{ISLR}</strong> library. In the model above we used OLS, but this is technically incorrect. The sales are in thousand units, so they have decimals and would appear to be continuous. But if we multiply Sales by 1000 to get actual units, it is easy to realize that they are actual counts. So, I first create a new variable <code>SalesUnits = 1000 * Sales</code> to capture actual units sold, that is, a count. Also, neither Sales nor SalesUnits are ever negative, so again, they are truncated at 0.</p>
+<p>So, let’s fit a reduced model to predict SalesUnits using just the significant predictors from the OLS model above, but using a count data model, using GLM with a Poisson distribution and a Log transformation. Also, I re-level the ShelveLoc variable back to <code>ref = "Bad"</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ISLR)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">4</span>) <span class="co"># To minimize use of scientific notation</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>Carseats<span class="sc">$</span>ShelveLoc <span class="ot">&lt;-</span> <span class="fu">relevel</span>(Carseats<span class="sc">$</span>ShelveLoc, </span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>                              <span class="at">ref =</span> <span class="st">"Bad"</span>)</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>Carseats<span class="sc">$</span>SalesUnits <span class="ot">&lt;-</span> <span class="dv">1000</span> <span class="sc">*</span> Carseats<span class="sc">$</span>Sales</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>glm.fit.count <span class="ot">&lt;-</span> <span class="fu">glm</span>(SalesUnits <span class="sc">~</span> </span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>                     CompPrice <span class="sc">+</span> Income <span class="sc">+</span> Advertising <span class="sc">+</span> Price <span class="sc">+</span> ShelveLoc,</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">family =</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">"log"</span>),</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> Carseats)</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(glm.fit.count) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = SalesUnits ~ CompPrice + Income + Advertising + 
+    Price + ShelveLoc, family = poisson(link = "log"), data = Carseats)
+
+Coefficients:
+                   Estimate  Std. Error z value Pr(&gt;|z|)    
+(Intercept)      8.16534700  0.00526008  1552.3   &lt;2e-16 ***
+CompPrice        0.01250654  0.00004616   270.9   &lt;2e-16 ***
+Income           0.00233015  0.00002109   110.5   &lt;2e-16 ***
+Advertising      0.01506094  0.00008523   176.7   &lt;2e-16 ***
+Price           -0.01223072  0.00002990  -409.1   &lt;2e-16 ***
+ShelveLocGood    0.62651643  0.00175152   357.7   &lt;2e-16 ***
+ShelveLocMedium  0.29545561  0.00158949   185.9   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 454394  on 399  degrees of freedom
+Residual deviance: 119682  on 393  degrees of freedom
+AIC: 123954
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+</div>
+<p>The <code>family = poisson(link = "log")</code> attribute tells <code>glm()</code> that the response variable follows a Poisson distribution and that the outcome variable is to be log-transformed. Because SalesUnit is logged and the predictors are not, the coefficients (multiplied by 100) represent the percent increase in unit sales when a predictor increases by 1 unit. For example, on average, the effect of $1 increase in price is a <code>0.0122 * 100</code> or <code>1.22%</code> reduction in unit sales.</p>
+</section>
+<section id="transformation-centering-data" class="level1">
+<h1>5. Transformation: Centering Data</h1>
+<p>Centering data is a straight forward operation. In the code below I first fit an uncentered OLS model to compare results.</p>
+<p>Un-Centered Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS) <span class="co"># Contains the Boston housing data set</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>lm.fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">+</span> age, <span class="at">data =</span> Boston) <span class="co"># Un-transformed model</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + age, data = Boston)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.981  -3.978  -1.283   1.968  23.158 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 33.22276    0.73085  45.458  &lt; 2e-16 ***
+lstat       -1.03207    0.04819 -21.416  &lt; 2e-16 ***
+age          0.03454    0.01223   2.826  0.00491 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.173 on 503 degrees of freedom
+Multiple R-squared:  0.5513,    Adjusted R-squared:  0.5495 
+F-statistic:   309 on 2 and 503 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>To center the data We use the <code>scale()</code> function to center the entire <code>Boston</code> housing data set, but you can actually center individual variables if needed. I give a new name to the centered data set to preserve the original one. Please note that I also use the <code>data.frame()</code> function because the <code>scale()</code> function converts the data into a matrix and some functions like <code>lm()</code> and <code>glm()</code> only work with data frames. Also, the parameter <code>center = T</code> centers the data. I will discuss the <code>scale = F</code> in a few moments, which is used to standardize the data.</p>
+<p>When fitting centered models, it is better to force the regression line through the origin. Including <code>-1</code> in the model formula removes the intercept term, that is, it forces the regression line through the origin. Otherwise the regression will display an intercept that is very very small, which is mathematically almost 0 due to rounding.</p>
+<p>Centered Model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>Boston.centered <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">scale</span>(Boston, </span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">center=</span>T, </span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">scale=</span>F))</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>Boston.centered[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>] <span class="co"># Check a few of the centered values</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       crim         zn     indus        chas         nox
+1 -3.607204   6.636364 -8.826779 -0.06916996 -0.01669506
+2 -3.586214 -11.363636 -4.066779 -0.06916996 -0.08569506
+3 -3.586234 -11.363636 -4.066779 -0.06916996 -0.08569506
+4 -3.581154 -11.363636 -8.956779 -0.06916996 -0.09669506
+5 -3.544474 -11.363636 -8.956779 -0.06916996 -0.09669506</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>lm.centered <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">+</span> age <span class="sc">-</span><span class="dv">1</span>, </span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> Boston.centered)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.centered)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + age - 1, data = Boston.centered)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.981  -3.978  -1.283   1.968  23.158 
+
+Coefficients:
+      Estimate Std. Error t value Pr(&gt;|t|)    
+lstat -1.03207    0.04814 -21.438  &lt; 2e-16 ***
+age    0.03454    0.01221   2.828  0.00486 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.167 on 504 degrees of freedom
+Multiple R-squared:  0.5513,    Adjusted R-squared:  0.5495 
+F-statistic: 309.6 on 2 and 504 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Notice that the un-centered and centered regressions above produce identical results because centering does not change the coefficients, but only the intercept.</p>
+<p>So, why bother to center your data, if you are going to get identical results? If all you have is a linear model, there is no need to center the data. However, if you have polynomials or interaction models, certain methods will require that you center the data. For example, centering is necessary when including interaction terms involving 2 continuous variables:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">*</span> age, </span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>           <span class="at">data =</span> Boston)) <span class="co"># With uncentered data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat * age, data = Boston)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.806  -4.045  -1.333   2.085  27.552 
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 36.0885359  1.4698355  24.553  &lt; 2e-16 ***
+lstat       -1.3921168  0.1674555  -8.313 8.78e-16 ***
+age         -0.0007209  0.0198792  -0.036   0.9711    
+lstat:age    0.0041560  0.0018518   2.244   0.0252 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.149 on 502 degrees of freedom
+Multiple R-squared:  0.5557,    Adjusted R-squared:  0.5531 
+F-statistic: 209.3 on 3 and 502 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">*</span> age <span class="sc">-</span><span class="dv">1</span>, </span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>           <span class="at">data =</span> Boston.centered)) <span class="co"># With centered data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat * age - 1, data = Boston.centered)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-16.177  -4.296  -1.535   1.751  24.476 
+
+Coefficients:
+           Estimate Std. Error t value Pr(&gt;|t|)    
+lstat     -1.077006   0.054585 -19.731  &lt; 2e-16 ***
+age        0.044915   0.013576   3.308  0.00101 ** 
+lstat:age  0.002488   0.001434   1.735  0.08339 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.155 on 503 degrees of freedom
+Multiple R-squared:  0.5539,    Adjusted R-squared:  0.5513 
+F-statistic: 208.2 on 3 and 503 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Interpreting interaction effect with continuous variables is not easy. Centering variables in interaction terms makes the model correct and its interpretation easier. Interaction between 2 continuous variables means that the effect of one variable depends on the value of the other variable. The main effects in the above model show the effect of that variables, when the other variable is at its mean. I will discuss interaction models in Chapter 8, but for now, notice in the regressions above that once you include continuousxcontinuous interaction terms, the results are no longer the same between the centered and uncentered models. The centered data is the correct way to model continuous interaction terms.</p>
+<p>In addition, we will discuss the pervasive issue of multicollinearity in Chapter 5, but this issue happens when predictors have strong linear relationships with each other. Sometimes, the predictors are not so linearly related, but if there is a predictor with fairly constant values, it will exhibit high multicollinearity with the intercept. If you run the <strong>Condition Index</strong> test for multicollinearity and find that it is severe, you can try to run a full centered regression and see if this resolves the multicollinearity issue. I will discuss this in more depth in Chapter 5.</p>
+<p>Sometimes you want to center just a few variables, not all of them. In that case, center the desired variables, but give them a different name to avoid messing up the original data set. I typicall use the <code>.c</code> suffix:</p>
+<p>First, center the data</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>medv.c <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>medv, <span class="at">center =</span> T, <span class="at">scale =</span> F)</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>lstat.c <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>lstat, <span class="at">center =</span> T, <span class="at">scale =</span> F)</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>age.c <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>age, <span class="at">center =</span> T, <span class="at">scale =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, let’s display the centered data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>centered.data <span class="ot">&lt;-</span> <span class="fu">cbind</span>(Boston<span class="sc">$</span>medv.c, </span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>                       Boston<span class="sc">$</span>lstat.c, </span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>                       Boston<span class="sc">$</span>age.c)</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(centered.data) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"medv.c"</span>, </span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"lstat.c"</span>, </span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"age.c"</span>) <span class="co"># Add column labels</span></span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(centered.data) <span class="co"># Check some of the results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         medv.c   lstat.c      age.c
+[1,]  1.4671937 -7.673063  -3.374901
+[2,] -0.9328063 -3.513063  10.325099
+[3,] 12.1671937 -8.623063  -7.474901
+[4,] 10.8671937 -9.713063 -22.774901
+[5,] 13.6671937 -7.323063 -14.374901
+[6,]  6.1671937 -7.443063  -9.874901</code></pre>
+</div>
+</div>
+</section>
+<section id="transformation-standardizing-data" class="level1">
+<h1>6. Transformation: Standardizing Data</h1>
+<p>You can standardize data with the same <code>scale()</code> function but using the parameter <code>scale = T</code>. Standardizing automatically centers the data, so you can set the parameter to <code>center = F</code> or <code>center = T</code>. In the end, all variables have a mean of 0 and a standard deviation of 1.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>Boston.standardized <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">scale</span>(Boston, </span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">center =</span> T, </span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">scale =</span> T))</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>Boston.standardized[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>] <span class="co"># Check a few of the centered values</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        crim         zn      indus       chas        nox
+1 -0.4193669  0.2845483 -1.2866362 -0.2723291 -0.1440749
+2 -0.4169267 -0.4872402 -0.5927944 -0.2723291 -0.7395304
+3 -0.4169290 -0.4872402 -0.5927944 -0.2723291 -0.7395304
+4 -0.4163384 -0.4872402 -1.3055857 -0.2723291 -0.8344581
+5 -0.4120741 -0.4872402 -1.3055857 -0.2723291 -0.8344581</code></pre>
+</div>
+</div>
+<p>Let’s compare results (note that I did not remove the intercept, so its value is negligible):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">4</span>) <span class="co"># Reduce use of scientific notation</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.fit) <span class="co"># Un-transformed model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + age, data = Boston)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.981  -3.978  -1.283   1.968  23.158 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 33.22276    0.73085  45.458  &lt; 2e-16 ***
+lstat       -1.03207    0.04819 -21.416  &lt; 2e-16 ***
+age          0.03454    0.01223   2.826  0.00491 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.173 on 503 degrees of freedom
+Multiple R-squared:  0.5513,    Adjusted R-squared:  0.5495 
+F-statistic:   309 on 2 and 503 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>lm.standardized <span class="ot">&lt;-</span> <span class="fu">lm</span>(medv <span class="sc">~</span> lstat <span class="sc">+</span> age <span class="sc">-</span><span class="dv">1</span>, </span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> Boston.standardized)</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.standardized)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + age - 1, data = Boston.standardized)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.7376 -0.4325 -0.1396  0.2140  2.5180 
+
+Coefficients:
+      Estimate Std. Error t value Pr(&gt;|t|)    
+lstat -0.80135    0.03738 -21.438  &lt; 2e-16 ***
+age    0.10573    0.03738   2.828  0.00486 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.6705 on 504 degrees of freedom
+Multiple R-squared:  0.5513,    Adjusted R-squared:  0.5495 
+F-statistic: 309.6 on 2 and 504 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Coefficients indicate how many standard deviations <strong>medv</strong> changes when the predictors increase by 1 standard deviation. For example, when <strong>lstat</strong> increases by 1 standard deviation, <strong>medv</strong> decreases by 0.801 standard deviations.</p>
+<p>As with centering, these instructions will standardize (center and scale) only selected predictors and save the results in new variables with the <code>.std</code> suffix.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>medv.std <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>medv, <span class="at">center =</span> T, <span class="at">scale =</span> T)</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>lstat.std <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>lstat, <span class="at">center =</span> T, <span class="at">scale =</span> T)</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>Boston<span class="sc">$</span>age.std <span class="ot">&lt;-</span> <span class="fu">scale</span>(Boston<span class="sc">$</span>age, <span class="at">center =</span> T, <span class="at">scale =</span> T)</span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>std.data <span class="ot">&lt;-</span> <span class="fu">cbind</span>(Boston<span class="sc">$</span>medv.std, </span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>                  Boston<span class="sc">$</span>lstat.std, </span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>                  Boston<span class="sc">$</span>age.std)</span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(std.data) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"medv.std"</span>, </span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"lstat.std"</span>, </span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"age.std"</span>) <span class="co"># Add column labels</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(std.data) <span class="co"># Check some of the results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       medv.std  lstat.std    age.std
+[1,]  0.1595278 -1.0744990 -0.1198948
+[2,] -0.1014239 -0.4919525  0.3668034
+[3,]  1.3229375 -1.2075324 -0.2655490
+[4,]  1.1815886 -1.3601708 -0.8090878
+[5,]  1.4860323 -1.0254866 -0.5106743
+[6,]  0.6705582 -1.0422909 -0.3508100</code></pre>
+</div>
+</div>
+<section id="standardized-regression" class="level2">
+<h2 class="anchored" data-anchor-id="standardized-regression">Standardized regression</h2>
+<p>Instead of standardizing the entire data set, you can also run a regular linear model function and then extract standardized coefficients with the <strong>{lm.beta}</strong> package, which will yield identical results than running a regression with all variables standardized.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lm.beta)</span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>lm.standardized <span class="ot">&lt;-</span> <span class="fu">lm.beta</span>(lm.fit) <span class="co"># Extract standardized coefficients</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.standardized) <span class="co"># Check it out</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = medv ~ lstat + age, data = Boston)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-15.981  -3.978  -1.283   1.968  23.158 
+
+Coefficients:
+            Estimate Standardized Std. Error t value Pr(&gt;|t|)    
+(Intercept) 33.22276           NA    0.73085  45.458  &lt; 2e-16 ***
+lstat       -1.03207     -0.80135    0.04819 -21.416  &lt; 2e-16 ***
+age          0.03454      0.10573    0.01223   2.826  0.00491 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 6.173 on 503 degrees of freedom
+Multiple R-squared:  0.5513,    Adjusted R-squared:  0.5495 
+F-statistic:   309 on 2 and 503 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="transformation-lagging-data" class="level1">
+<h1>7. Transformation: Lagging data</h1>
+<p>When there is a time variable in the data, we may experience the issue of <strong>serial correlation</strong> or <strong>autocorrelation</strong>. Deep coverage of time-series models is beyond the scope of this book, but we can build simple multi-variate time-series models and make transformations to provide for serial correlation. When the residual of one data point is dependent on and highly correlated with the residual for the previous time period (e.g., your salary this month is highly correlated to your salary last month), we need to make some transformations to eliminate, or at least reduce the issue of serial correlation.</p>
+<p>Important: with some OLS assumption violations, we may get unbiased estimates or roughly correct predictions. However, serial correlation causes the predictors to be just plain <strong>wrong</strong>. Therefore, correcting for serial correlation is critical in time-sensitive data.</p>
+<p>Let’s work the <strong>economics</strong> data set in the <strong>{ggplot2}</strong> library. Let’s plot a plain OLS <strong>no-lag</strong> model to predict unemployment (<strong>unemploy</strong> - number of unemployed in thousands) using <strong>date</strong> (month of data collection); <strong>pce</strong> (personal consumption expenditures in $ billions); <strong>uempmed</strong> (median duration of unemployment in weeks); <strong>psavert</strong> (personal savings rate); and <strong>pop</strong> (total population in thousands). Let’s also plot the residuals against the month.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Please note that there is a minor data glitch in economics in that the data frame data set has another data frame embedded. This causes some errors. Let’s re-compose the data frame to avoid any issues:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>economics <span class="ot">=</span> <span class="fu">as.data.frame</span>(economics) <span class="co"># To fix the glitch</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">4</span>) <span class="co"># Reduce use of scientific notation</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>fit.no.lag <span class="ot">&lt;-</span> <span class="fu">lm</span>(unemploy <span class="sc">~</span> date <span class="sc">+</span> pce <span class="sc">+</span> uempmed <span class="sc">+</span> psavert <span class="sc">+</span> pop, </span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> economics)</span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit.no.lag)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = unemploy ~ date + pce + uempmed + psavert + pop, 
+    data = economics)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-2522.2  -586.2   -76.0   439.9  4031.1 
+
+Coefficients:
+               Estimate  Std. Error t value  Pr(&gt;|t|)    
+(Intercept) 26896.43520  6200.89392   4.338 0.0000171 ***
+date            1.64376     0.16036  10.250   &lt; 2e-16 ***
+pce            -0.89754     0.10103  -8.884   &lt; 2e-16 ***
+uempmed       581.60772    17.46624  33.299   &lt; 2e-16 ***
+psavert       123.78794    32.45718   3.814  0.000152 ***
+pop            -0.13104     0.03004  -4.362 0.0000153 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 926.3 on 568 degrees of freedom
+Multiple R-squared:  0.8782,    Adjusted R-squared:  0.8771 
+F-statistic: 818.7 on 5 and 568 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Visual Inspection for possible serial correlation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(economics<span class="sc">$</span>date, fit.no.lag<span class="sc">$</span>residuals,</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Date"</span>, </span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab =</span> <span class="st">"Residuals"</span>)</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="co"># Red line with intercept and slope equal to 0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid" width="960"></p>
+</div>
+</div>
+<p>The results above clearly shows a cyclical pattern in the residuals suggesting possible positive serial correlation. The plot shows an obvious cyclical pattern. The OLS results look really good, but that is part of the problem with serial correlation in that variables show as significant when sometimes they are not. So, it sounds like we will need to test this model for serial correlation. So, let’s test it statistically.</p>
+<p>The first thing is to ensure that the data is sorted by the ordinal variable, <strong>date</strong> in this case. That is, if we want to test that the errors are serially correlated across time, the cases must also be orderd by time. The <strong>economics</strong> dataset is already orderd.</p>
+<section id="testing-for-serial-correlation" class="level2">
+<h2 class="anchored" data-anchor-id="testing-for-serial-correlation">Testing for Serial Correlation</h2>
+<p>We start with a <strong>Durbin-Watson (DW)</strong> test for serial correlation using the <code>dwtest()</code> function in the <code>{lmtest}</code> library.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lmtest)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dwtest</span>(fit.no.lag)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Durbin-Watson test
+
+data:  fit.no.lag
+DW = 0.18485, p-value &lt; 2.2e-16
+alternative hypothesis: true autocorrelation is greater than 0</code></pre>
+</div>
+</div>
+<p><code>DW = 0.185</code>, which is far to the left of 1.5 and the p-value is also significant. So, we reject the null hypothesis of no serial correlation and conclude that serial correlation is present. DW &lt; 2 indicates high positive serial correlation, that is, the residuals at time T are <strong>positively correlated</strong> with the residuals at time T + 1 (i.e., residuals at time T are similar to residuals at time T + 1. DW &gt; 2 indicates high negative serial correlation, that is, the residuals at time T are <strong>negatively correlated</strong> with the residuals at time T + 1. DW = 2 indicates no serial correlation. Overall, 1.5 &lt; DW &lt; 2.5 is generally acceptable, but it is important to also look at the p-value of the DW test. The farther DW deviates from 2, the smaller the p-value and if <strong>p &lt; 0.05</strong> we can reject the null-hypothesis of no serial correlation and conclude that the residuals are serially correlated.</p>
+<p>But the DW test has some limitations. The main limitation is that the DW only evaluates serial correlation with the data in the prior period. However, for example, we may suspect that there may be serial correlation with data in the same month one year (i.e., 12 periods) back. So we need another test.We can use either the <strong>Box-Pierce</strong> or <strong>Ljung-Box</strong> test in the <strong>{stats}</strong> library, both of which allow you to specify the number of lagged periods to test. Let’s try both tests with <code>lag = 1</code> and <code>lag = 12</code>. Notice that, in contrast to the DW test, the two Box tests only required the ordered residual for the test.</p>
+<p>Let’s start with <strong>Box-Pierce</strong> tests for serial correlation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.no.lag), </span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">lag =</span> <span class="dv">1</span>) <span class="co"># The default is Box-Pierce</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Pierce test
+
+data:  residuals(fit.no.lag)
+X-squared = 472.72, df = 1, p-value &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.no.lag), </span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">lag =</span> <span class="dv">12</span>) <span class="co"># Testing for 12-period lag</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Pierce test
+
+data:  residuals(fit.no.lag)
+X-squared = 3703.1, df = 12, p-value &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Let’s now try the <strong>Ljung-Box</strong> test:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.no.lag), </span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">lag =</span> <span class="dv">1</span>, </span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">type =</span> <span class="st">"Ljung-Box"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Ljung test
+
+data:  residuals(fit.no.lag)
+X-squared = 475.2, df = 1, p-value &lt; 2.2e-16</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.no.lag), </span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">lag =</span> <span class="dv">12</span>, </span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">type =</span> <span class="st">"Ljung-Box"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Ljung test
+
+data:  residuals(fit.no.lag)
+X-squared = 3751.8, df = 12, p-value &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Both tests confirm the serial correlation with residuals lagged 1 period, but they also show serial correlation with a lag of 12 periods.</p>
+</section>
+<section id="correcting-for-serial-correlation" class="level2">
+<h2 class="anchored" data-anchor-id="correcting-for-serial-correlation">Correcting for Serial Correlation</h2>
+<p>An AR(1) model is an auto-regressive model with a 1 period lag. An AR(12) model would include 12 lags of 1, 2, etc., to all 12 period lags. We can certainly try this, which would be standard in econometric forecasting models, but since we are building this model using business intuition and would like a good degree of interpretability, we will lag just 1 and 12 periods and observe our results. However, there is nothing stopping you from trying a full AR(12) model on your own.</p>
+<p>Let’s lag the <code>unemploy</code> variable 1 and 12 periods and store the lagged results in new variables suffixed <strong>L1</strong> and <strong>L12</strong>. We use the <code>slide()</code> function from the from the <strong>{DataCombine}</strong> library. Negative slides lag values and positive slides move values forward. The <code>var =</code> parameter shows which variable to lag; the <code>NewVar =</code> parameter contains the name of the variable where the lagged values will be stored; and the <code>slideBy =</code> parameter indicates how many periods to lag (negative) or advance (positive).</p>
+<p>Let’s lag 1 and 12 periods:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DataCombine)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>economics <span class="ot">&lt;-</span> <span class="fu">slide</span>(economics, </span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Var =</span> <span class="st">"unemploy"</span>, </span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">NewVar =</span> <span class="st">"unemploy.L1"</span>, </span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">slideBy =</span> <span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>economics <span class="ot">&lt;-</span> <span class="fu">slide</span>(economics, </span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Var =</span> <span class="st">"unemploy"</span>, </span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>                   <span class="at">NewVar =</span> <span class="st">"unemploy.L12"</span>, </span>
+<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a>                   <span class="at">slideBy =</span> <span class="sc">-</span><span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s display the first 15 rows of the lagged data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>economics[<span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>,</span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"date"</span>, <span class="st">"unemploy"</span>, <span class="st">"unemploy.L1"</span>, <span class="st">"unemploy.L12"</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         date unemploy unemploy.L1 unemploy.L12
+1  1967-07-01     2944          NA           NA
+2  1967-08-01     2945        2944           NA
+3  1967-09-01     2958        2945           NA
+4  1967-10-01     3143        2958           NA
+5  1967-11-01     3066        3143           NA
+6  1967-12-01     3018        3066           NA
+7  1968-01-01     2878        3018           NA
+8  1968-02-01     3001        2878           NA
+9  1968-03-01     2877        3001           NA
+10 1968-04-01     2709        2877           NA
+11 1968-05-01     2740        2709           NA
+12 1968-06-01     2938        2740           NA
+13 1968-07-01     2883        2938         2944
+14 1968-08-01     2768        2883         2945
+15 1968-09-01     2686        2768         2958</code></pre>
+</div>
+</div>
+<p>Now let’s try the regression model above, but with the 2 lagged variables included.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>fit.lag <span class="ot">&lt;-</span> <span class="fu">lm</span>(unemploy <span class="sc">~</span> date <span class="sc">+</span> unemploy.L1 <span class="sc">+</span> unemploy.L12 <span class="sc">+</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>                         pce <span class="sc">+</span> uempmed <span class="sc">+</span> psavert <span class="sc">+</span> pop, </span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">data =</span> economics)</span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit.lag)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = unemploy ~ date + unemploy.L1 + unemploy.L12 + pce + 
+    uempmed + psavert + pop, data = economics)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-636.48 -126.15   -7.57  127.65  757.56 
+
+Coefficients:
+                 Estimate   Std. Error t value Pr(&gt;|t|)    
+(Intercept)  -2172.974745  1578.301787  -1.377 0.169136    
+date            -0.052880     0.047746  -1.108 0.268544    
+unemploy.L1      1.065303     0.009687 109.972  &lt; 2e-16 ***
+unemploy.L12    -0.055135     0.009076  -6.075 2.31e-09 ***
+pce              0.016157     0.023327   0.693 0.488837    
+uempmed        -31.500533     8.560124  -3.680 0.000256 ***
+psavert         29.676306     6.969609   4.258 2.42e-05 ***
+pop              0.009526     0.007643   1.246 0.213176    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 196 on 554 degrees of freedom
+  (12 observations deleted due to missingness)
+Multiple R-squared:  0.9943,    Adjusted R-squared:  0.9942 
+F-statistic: 1.373e+04 on 7 and 554 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>The change in results should be obvious. <code>date</code>, <code>pce</code> and <code>pop</code> were significant in the no-lag model, but they are not significant now. That is, once we control for the unemployment values 1 and 12 periods back, these variables lose their significance.</p>
+<p>Let’s see if the serial correlation problem was corrected. I will start with a residual plot against date. Note that I exclude the first 12 date values and start with the 13th value, because there are no residuals for these data points, since there are no lag 12 unemployment values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(economics<span class="sc">$</span>date[<span class="dv">13</span><span class="sc">:</span><span class="fu">length</span>(economics<span class="sc">$</span>date)], </span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>     fit.lag<span class="sc">$</span>residuals,</span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Date"</span>, </span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab =</span> <span class="st">"Residuals"</span>)</span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>,<span class="dv">0</span>, <span class="at">col=</span><span class="st">"red"</span>) <span class="co"># Red line with intercept and slope equal to 0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="PAML4M_4R_DataPreProcessing_files/figure-html/unnamed-chunk-37-1.png" class="img-fluid" width="960"></p>
+</div>
+</div>
+<p>The residual plot above shows an even cloud of residuals, suggesting that serial correlation was resolved. To test this statistically we conduct a DW test and the two Box tests for lag-1 and lag-12</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dwtest</span>(fit.lag)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Durbin-Watson test
+
+data:  fit.lag
+DW = 2.1188, p-value = 0.8705
+alternative hypothesis: true autocorrelation is greater than 0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.lag), <span class="at">lag=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Pierce test
+
+data:  residuals(fit.lag)
+X-squared = 1.9927, df = 1, p-value = 0.1581</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.lag), <span class="at">lag=</span><span class="dv">1</span>, <span class="at">type=</span><span class="st">"Ljung-Box"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Ljung test
+
+data:  residuals(fit.lag)
+X-squared = 2.0034, df = 1, p-value = 0.157</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.lag), <span class="at">lag=</span><span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Pierce test
+
+data:  residuals(fit.lag)
+X-squared = 24.036, df = 12, p-value = 0.02011</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Box.test</span>(<span class="fu">residuals</span>(fit.lag), <span class="at">lag=</span><span class="dv">12</span>, <span class="at">type=</span><span class="st">"Ljung-Box"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Box-Ljung test
+
+data:  residuals(fit.lag)
+X-squared = 24.384, df = 12, p-value = 0.01803</code></pre>
+</div>
+</div>
+<p>The DW test shows that serial correlation for a 1-period lag was corrected. However, many statisticians argue that DW is not an appropriate test when a lagged response variable is included as a predictor because the DW will be biased towards a value of 2. From a practical perspective, the DW test is not precise, but sufficient for most business applications, particularly since the residual plot looks OK. However, it does not hurt to try the box tests and they are both non-significant, which provide some reassurance that the serial correlation problem was corrected. However, it appears that the serial correlation with lag-12 was not fully corrected, as both Box tests were significant. Again, this should be OK for most business models, but a more rigorous approach would require to test all 12 lags of the AR(12) model to find which lags are significant and which ones correct their respective serial correlation. I invite the readers to try this on their own.</p>
+<p><strong>Interpretation:</strong></p>
+<p>If we accept the lagged model above, let’s analyze it. The R-squared is quite high at 99.43%. However, this is not entirely unusual with lagged variables, which tend to be very strong predictors. As I discussed above, <code>date</code>, <code>pce</code> and <code>pop</code> are no longer significant. <code>uempmed</code> has a strong negative effect, but in the lagged model the effect flipped to negative. <code>psavert</code> retains its high significance and sign. These results illustrate how a model with serial correlation without correction will yield misleading results and show significant predictors, which are not so in reality, and which may actually have the opposite effect.</p>
+<p>The Lag-1 variable had a strong positive effect, suggesting that, holding everything else constant, on average, for each person unemployed in one period, there will be 1.06 persons unemployed in the subsequent period. However, for every person unemployed 12 months ago, there are 0.05 fewer persons unemployed today. These results are illustrative of the business cycle.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

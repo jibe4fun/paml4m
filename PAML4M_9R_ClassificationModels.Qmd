@@ -2,10 +2,10 @@
 title: "Appendix R9: Classification Models"
 subtitle: "Binomial and Categorical Classification Models"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -21,7 +21,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about classification models. A classification model predicts the correct classification of an outcome rather than its quantitative value. Models with only two possible outcomes are called **Binomial** and those with more than two outcomes are called **Multinomial**. The standard baseline classification model is the Binomial or Multinomial Logistic Regression, which I briefly introduced in Chapter 3. I also discuss other popular classification models, like Linear (LDA) and Quadratic Discriminant Analysis (QDA), and popular methods and metrics to evaluate model accuracy, such as the Confusion Matrix, Misclassification rates, Sensitivity and Specificity, Receiver Operating Characteristics (ROC) Curve, and Area under the ROC Curve (AUC). For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+abstract: This Quarto document contains R code examples about classification models. A classification model predicts the correct classification of an outcome rather than its quantitative value. Models with only two possible outcomes are called **Binomial** and those with more than two outcomes are called **Multinomial**. The standard baseline classification model is the Binomial or Multinomial Logistic Regression, which I briefly introduced in Chapter 3. I also discuss other popular classification models, like Linear (LDA) and Quadratic Discriminant Analysis (QDA), and popular methods and metrics to evaluate model accuracy, such as the Confusion Matrix, Misclassification rates, Sensitivity and Specificity, Receiver Operating Characteristics (ROC) Curve, and Area under the ROC Curve (AUC). For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J . Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
@@ -338,7 +338,6 @@ conf.mat <- addmargins(conf.mat,
                        margin = c(1, 2), 
                        FUN = sum) # Add margin totals
 
-conf.mat <- addmargins(conf.mat, c(1, 2), sum) # Add margin totals
 conf.mat
 ```
 

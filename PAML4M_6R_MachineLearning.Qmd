@@ -2,10 +2,10 @@
 title: "Appendix R6: Machine Learning (ML)"
 subtitle: "Cross-Validation (CV) Testing and Resampling"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-  pdf:
+  html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -22,7 +22,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about machine learning, cross validation, testing and re-sampling. Machine learning is central to accuracy in predictive models. I discuss the key concept of cross-validation, which is about training models and then testing them with existing data. I also cover popular re-sampling methods to do cross-validation more thoroughly and systematically. These methods are used to test models, compare models, tune model parameters and fit complex models for deep learning, such as neural networks. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).  
+abstract: This Quarto document contains R code examples about machine learning, cross validation, testing and re-sampling. Machine learning is central to accuracy in predictive models. I discuss the key concept of cross-validation, which is about training models and then testing them with existing data. I also cover popular re-sampling methods to do cross-validation more thoroughly and systematically. These methods are used to test models, compare models, tune model parameters and fit complex models for deep learning, such as neural networks. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*

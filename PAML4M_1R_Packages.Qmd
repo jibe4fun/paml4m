@@ -1,7 +1,7 @@
 ---
 title: "Appendix R: R Packages"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
    html:
@@ -21,7 +21,7 @@ include: true
 warning: false
 message: false
 
-abstract: This quarto file contains installation commands and instructions for all the packages associated with the PAML4M book. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+abstract: This quarto file contains installation commands and instructions for all the packages associated with the PAML4M book. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 # Introduction

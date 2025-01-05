@@ -2,10 +2,10 @@
 title: "Appendix R1: Introduction to R"
 subtitle: "Introduction to R"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -22,7 +22,7 @@ include: true
 warning: false
 message: false
 
-abstract: This quarto file contains a basic introduction to R, R Studio, R Markdown and Quarto. If you have no prior experience with R, this could be a good place to start, as it covers most of the necessary R functions, objects and commands to build basic models. For deeper content on R, please refer to some of the books noted below. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+abstract: This quarto file contains a basic introduction to R, R Studio, R Markdown and Quarto. If you have no prior experience with R, this could be a good place to start, as it covers most of the necessary R functions, objects and commands to build basic models. For deeper content on R, please refer to some of the books noted below. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 # Introduction
@@ -1141,10 +1141,10 @@ Also, every row and column in a data frame is **"indexed"**. It is very importan
 ```{r}
 #| eval: false
 
-Employees[1, ] -- First row (all columns) 
-Employees[, 1] -- First column (all rows)
-Employees[2, 3] -- Element in 2nd row and 3rd column
-Employees[3:10, 2:4] -- Rows 3 through 10 from columns 2 throgh 4
+Employees[1, ] # First row (all columns) 
+Employees[, 1] # First column (all rows)
+Employees[2, 3] # Element in 2nd row and 3rd column
+Employees[3:10, 2:4] # Rows 3 through 10 from columns 2 throgh 4
 ```
 
 **IMPORTANT:** a thorough understanding of data frame and vector indices is key to understanding sub-sampling, cross-validation and machine learning. Try to understand this well.

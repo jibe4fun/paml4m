@@ -2,10 +2,10 @@
 title: "Appendix R8: Non-Linear Models"
 subtitle: "Interaction, Polynomial, Piecewise and Spline Models"
 author: "J. Alberto Espinosa"
-date: "6/22/2024"
+date: "1/4/2025"
 
 format: 
-   pdf:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -21,7 +21,7 @@ include: true
 warning: false
 message: false
 
-abstract: This Quarto document contains R code examples about non-linear predictive models. It covers binary x continuous (B x C) interation models, polynomial regressions, step function models, piecewise linear spline regression and multivariate adaptive regression splines (MARS). These models are necessary when the OLS assumption of linearity does not hold, i.e., the relationship between one or more predictors and the outcome variable is/are not linear. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1).
+abstract: This Quarto document contains R code examples about non-linear predictive models. It covers binary x continuous (B x C) interation models, polynomial regressions, step function models, piecewise linear spline regression and multivariate adaptive regression splines (MARS). These models are necessary when the OLS assumption of linearity does not hold, i.e., the relationship between one or more predictors and the outcome variable is/are not linear. For the corresponding conceptual material associated with these appendinces, consult the main book [Predictive Analytics and Machine Learning for Managers](https://www.amazon.com/dp/B0C2RX8NY1). Chat with the PAML4M book and its related lecture slides and R scripts with its companion [PAML4M ChatBot](https://poe.com/PAML4M).
 ---
 
 *This script was created by J. Alberto Espinosa for educational and training purposes. Feel free to use this material for your own work, but please do not share or duplicate without the author's permission.*
