@@ -2,7 +2,7 @@
 title: "Appendix R4: Data Pre-Processing"
 subtitle: "Basic Data Transformations: WLS, GLM, Logistic and Trees"
 author: "J. Alberto Espinosa"
-date: "1/4/2025"
+date: "2/11/2025"
 
 format: 
    html:
@@ -224,9 +224,9 @@ summary(lm(log(price) ~ log(carat), data = diamonds)) # Log-Log Model
 
 **Linear-Log Model:** On average, the effect of 1% increase in carats in a diamond is an increase in price of `$5836/100` or `$58.36`. We divide by 100 because a 1% increase is a 0.01 or 1/100 proportion increase, so we need to do the same division on the price.
 
-**Log-Linear Model:** On average, the effect of 1 additional carat in a diamond is a `1.96.97*100` or `196.97%` increase in price. We multiply the effect because the price increases by a factor of 1.9697, which in percentage points is 100 times that.
+**Log-Linear Model:** On average, the effect of 1 additional carat in a diamond is a `196.97*100` or `196.97%` increase in price. We multiply the effect because the price increases by a factor of 1.9697, which in percentage points is 100 times that.
 
-**Log-Log Model:** On average, the effect oa 1% increase in price is a `1.67%` increase in price. We don't need to multiply or divide by 100 because both sides of the model are in either proportions or percentages.
+**Log-Log Model:** On average, the effect of a 1% increase in carats is a `1.67%` increase in price. We don't need to multiply or divide by 100 because both sides of the model are in either proportions or percentages.
 
 # 4. Transformation: Count Data
 
