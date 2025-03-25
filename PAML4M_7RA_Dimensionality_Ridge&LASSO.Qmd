@@ -164,24 +164,31 @@ cbind("Best Lambda" = best.lambda,
 
 You can extract Ridge regression coefficients for any level of Lambda shrinkage with the `coef()` function and the `s=` parameter.
 
-Similar to OLS with `Lambda = 0`
+**Technical note:** when you use `s = 0` (or any other fixed value), the `coef()` or `predict()` functions will not use the exact lambda value of 0, but one of the 100 lambdas used when fitting the model or will do some interpolation. So the results for OLS using `s = 0` will be close enough but not exactly the same as the ones for OLS. In order to get **exact** coefficients, you need to use the parameters `x = x, y = y, exact = T, s = 0`. In essence, these parameters tell the `coef()` function to estimate the ridge model for the exact lambda value `s = 0` , which will extract exact coefficients rather than interpolated one.
+
+Similar to OLS with **`Lambda s = 0`**:
 
 ```{r}
 options(scipen = 4)
+
 ridge.0 <- round(coef(ridge.mod, 
+                      x = x, y = y, 
+                      exact = T, 
                       s = 0), 
                  digits = 4)
 ```
 
-For the optimal Lambda `s = best.lambda`.
+For the optimal Lambda **`s = best.lambda`**., also with `exact = T`:
 
 ```{r}
 ridge.best <- round(coef(ridge.mod, 
+                         x = x, y = y, 
+                         exact = T, 
                          s = best.lambda), 
                     digits = 4)
 ```
 
-For some arbitrary `Lambda = 50`
+For some arbitrary **`Lambda s = 50`** (without exact coefficients):
 
 ```{r}
 ridge.50 <- round(coef(ridge.mod, 
@@ -189,7 +196,7 @@ ridge.50 <- round(coef(ridge.mod,
                   digits = 4)
 ```
 
-For some extreme shrinkage value, close to the Null model
+For some extreme shrinkage value, close to the **Null** model (without exact coefficients):
 
 ```{r}
 ridge.huge <- round(coef(ridge.mod, 
@@ -404,7 +411,7 @@ List all lambdas and corresponding CV test deviance (2LL)
 
 ```{r}
 round(cbind("Lambda" = cv.10Fold.lasso$lambda, 
-            "10 Fold 2LL" = cv.10Fold.lasso$cvm), 
+            "10 Fold MSE" = cv.10Fold.lasso$cvm), 
       digits = 4)[1:60, ]
 plot(cv.10Fold.lasso) # Plot all lambdas vs. MSEs
 ```
@@ -425,10 +432,21 @@ round(cbind("Best Lambda" = best.lambda.lasso,
 ## Extracting LASSO Coefficients
 
 ```{r}
-lasso.0 <- coef(lasso.mod, s = 0) # No shrinkage, same as OLS
-lasso.best <- coef(lasso.mod, s = best.lambda.lasso) # best Lambda
-lasso.50 <- coef(lasso.mod, s = 50) # Some lambda=50
-lasso.large <- coef(lasso.mod, s = 10 ^ 20) # Null model
+lasso.0 <- round(coef(lasso.mod, s = 0, # No shrinkage, same as OLS
+                      x = x, y = y, 
+                      exact = T), 
+                 digits = 4)
+
+lasso.best <- round(coef(lasso.mod, s = best.lambda.lasso, # best Lambda
+                         x = x, y = y, 
+                         exact = T), 
+                    digits = 4)
+
+lasso.50 <- round(coef(lasso.mod, s = 50), # Some lambda=50
+                  digits = 4)
+
+lasso.large <- round(coef(lasso.mod, s = 10 ^ 20), # Null model
+                     digits = 4)
 
 lasso.all <- cbind(lasso.0, 
                    lasso.best, 
@@ -444,10 +462,8 @@ lasso.all # Display all coefficients
 Let's compare the effects for the best LASSO and Ridge models
 
 ```{r}
-best.both <- cbind(ridge.best,
-                   lasso.best)
-colnames(best.both) <- c("Ridge",
-                         "LASSO")
+best.both <- cbind(ridge.best, lasso.best)
+colnames(best.both) <- c("Ridge", "LASSO")
 best.both # Display all coefficients
 ```
 
