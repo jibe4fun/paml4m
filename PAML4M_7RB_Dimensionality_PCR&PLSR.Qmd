@@ -2,10 +2,10 @@
 title: "Appendix R7B: Dimensionality - Dimension Reduction"
 subtitle: "Principal Components and Partial Least Squares Regressions"
 author: "J. Alberto Espinosa"
-date: "1/4/2025"
+date: "3/25/2025"
 
 format: 
-   html:
+   epub:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -95,9 +95,9 @@ A few notes about the `summary()` of the `pcr()` results object. First, notice t
 
 **Validation Output Panel**
 
-1.  This panel shows CV **Square Root (MSE)** values, not MSE. Naturally, you can square these values to get the MSEs. The adjCV is a "bias-corrected" CV. It makes very little difference for our purposes, but adjCV makes some statistical adjustment that may come from sampling bias in CV testing. Let's pay more attention to the plain CV values, which are the real ones.
+1.  This panel shows the **CV** **Square Root MSE (RMSE)** values, not MSE's. Naturally, you can square these values to get the MSEs. The adjCV is a "bias-corrected" CV. It makes very little difference for our purposes, but adjCV makes some statistical adjustment that may come from sampling bias in CV testing. Let's pay more attention to the plain CV values, which are the real ones.
 
-2.  The CV RMSE goes down from 0 (Null model) to 1 component and it then goes up and down slightly until it gets to 6 components with a `CV RMSE = 343.7`. It then goes up and down again, with another low point at 16 components with a `CV RMSE = 343.4`. The absolute lowest point is at 18 components with a `CV RMSE = 341.2`.
+2.  The CV RMSE goes down from 0 (Null model) to 1 component and it then goes up and down slightly until it gets to 6 components with a `CV RMSE = 343.6`. It then goes up and down again, with another low point at 16 components with a `CV RMSE =``339.9`. The absolute lowest point is at 18 components with a `CV RMSE = 339.2`.
 
 **Variance Explained Panel**
 
@@ -240,7 +240,7 @@ Notice in the output the similarities and differences between PLSR and PCR. With
 
 2.  If the analysis goal is interpretability, it would be best ti select the largest possible model with an acceptable CV RMSE, which in this case is also 17 PCs. However, since the difference in CV RMSE between 17 PCs and the full 19 PCs is minuscule, it would be OK to interpret the results with the 19 PC model.
 
-3.  If the analysis goal is to substantially reduce the dimension of the model, it would be best to select the model with the smallest number of PC's that explain at least 70% of the varianec of the predictors, or 4 PCs in this case, which explains 73.93% of the variance in the predictors, which is a good representation of the data.
+3.  If the analysis goal is to substantially reduce the dimension of the model, it would be best to select the model with the smallest number of PC's that explain at least 70% of the variance of the predictors, or 4 PCs in this case, which explains 73.93% of the variance in the predictors, which is a good representation of the data.
 
 ## PLSR Loadings and Scores
 
