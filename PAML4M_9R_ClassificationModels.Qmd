@@ -5,7 +5,7 @@ author: "J. Alberto Espinosa"
 date: "1/4/2025"
 
 format: 
-   html:
+   epub:
      toc: true
      toc-depth: 2
      toc-expand: 2
@@ -90,6 +90,43 @@ summary(heart.fit)
 ```
 
 Looks like tobacco, ldl, family history, type a and age are the strongest predictors of coronary heart desease (`chd = 1 yes; = 2 no`). Interestingly Once you control for these factors obesity and alcohol are not significant predictors. Take a closer look:
+
+## Unbalanced Outcome Variable
+
+When analyzing binary outcomes, it is important that the outcome variable is relatively balanced 50-50% between positives and negatives. For example, in the **`heart`** data set the outcome variable `chd` has the following distribution of positives and negatives:
+
+```{r}
+chd.pos <- round(sum(heart$chd == 0) / nrow(heart), digits = 3)
+cat("Positive outcomes fraction = ", chd.pos)
+cat("\n")
+
+chd.neg <- round(sum(heart$chd == 1) / nrow(heart), digits = 3)
+cat("Negative outcomes fraction = ", chd.neg)
+```
+
+This means that a model with a sensitivity lower than 0.654 is less accurate than the null model, and a model with a specificity lower than 0.346 is also less accurate than the null model. That is, any model with acceptable predictive accuracy has to outperform these **anterior** or **prior** probabilities of the null model and we need to keep this in mind when we evaluate models. In some cases, this imbalance is severe. For example, in health data, an outcome measuring a positive diagnosis may have 5% or so positives and 95% or so negatives. In such cases, one popular technique, if the data is suffiently large, is to use a **reduced subsample** composed of **ALL** the observations with the lowest outcome percentage, either positive or negative, combined with a random subsample of the largest outcome observations that matches the size of the smaller outcome subsample size. For example:
+
+```{r}
+set.seed(1) # Random seed
+
+heart.1 <- subset(heart, chd == 1) # Subset with positive outcomes
+cat("Positive observations = ", nrow(heart.1), "\n")
+
+heart.0 <- subset(heart, chd == 0) # Subset with negative outcomes
+cat("Negative observations = ", nrow(heart.0), "\n")
+
+# Since there are more negatives than positives, let'w first build a subsample of the negatives matching the size of the positives.
+
+heart.0.bal <- heart.0[sample(nrow(heart.0), nrow(heart.1)), ] # 160 rows, all columns
+cat("Negative balanced observations = ", nrow(heart.0.bal), "\n")
+
+# Let's now row bind all positives with the balanced subset of negatives.
+
+heart.bal <- rbind(heart.1, heart.0.bal)
+cat("Total balanced (160 + 160) observations = ", nrow(heart.bal))
+```
+
+You can now use **`heart.bal`** instead of **`heart`** if you wish to use a balanced dataset. For simplicity, the rest of this script uses the original data set **`heart`**.
 
 ## Logistic Regression Fit Statistics
 
@@ -445,14 +482,14 @@ Let's fit a model for labor participation (fulltime, not.work, parttime), based 
 levels(Womenlf$partic)
 ```
 
--   The levels in `$partic` are: `fulltime`, `not.work`, `parttime`
--   `fulltime` is the refLevel (first alphabetically), but we can change this
--   The effect for `not.work` will be suffixed `:1` in the summary output
--   The effect for `parttime` will be suffixed `:2` in the summary output
+-   The levels in **`$partic`** are: **`fulltime`**, **`not.work`**, **`parttime`**
+-   **`fulltime`** is the **refLevel** (first alphabetically), but we can change this, of course
+-   The effect for the log-odds of **`not.work`** will be suffixed **`:1`** in the summary output
+-   The effect for the log-odds of **`parttime`** will be suffixed **`:2`** in the summary output
 
 ```{r}
 vglm.fit <- vglm(partic ~ hincome + children, 
-                 family = multinomial(refLevel = 1), # "fulltime"
+                 family = multinomial(refLevel = 1), # reference level = "fulltime"
                  data = Womenlf)
 summary(vglm.fit)
 ```
@@ -487,13 +524,13 @@ The coefficients in the multinomial Logistic regression, just like in binomial L
 
 Notice in the output above that each variable has 2 values. Since we have 3 categories in the response variable and the first one was left out as the reference variable, the first coefficient is for the log-odds of the second response category `not.work`; and the second one is for the third response category `parttime`.
 
-`hincome:1` - on average and holding everything else constant, when the husband's income goes up by `$1K`, the log-odds of `not working`, go up by 0.097, compared to working `full time`, The odds go up 1.102 times.
+**`hincome:1`** - on average and holding everything else constant, when the **husband's income** goes up by **`$1K`**, the **log-odds** of **`not working`**, go up by **0.097**, **compared** to working **`full-time`**, The **odds** go up **1.102 times**.
 
-`hincome:2` - On average and holding everything else constant, when the husband's income goes up by \$1K, the log-odds of working `part time`, go up by 0.104. The odds go up 1.1097 times, compared to working `full time`.
+**`hincome:2`** - On average and holding everything else constant, when the **husband's income** goes up by **\$1K**, the **log-odds** of **working `part time`**, go up by **0.104**, **compared** to working **`full time`**. The **odds** go up **1.1097 times**.\`
 
-`childrenpresent:1` - on average and holding everything else constant, when there are children present in the family, compared to no children, the log-odds of `not working`, go up by 2.559, compared to working `full time`, The odds go up 12.917 times.
+**`childrenpresent:1`** - on average and holding everything else constant, when there are **children present** in the family, **compared** to **no children**, the **log-odds** of **`not working`**, go up by **2.559**, **compared** to working **`full time`**, The **odds** go up **12.917 times**.
 
-`childrenpresent:2` - on average and holding everything else constant, when there are children present in the family, compared to no children, the log-odds of working `part time`, go up by 2.580, compared to working `full time`, The odds go up 13.198 times.
+**`childrenpresent:2`** - on average and holding everything else constant, when there are **children present** in the family, **compared** to **no children**, the **log-odds** of working **`part time`**, go up by **2.580**, **compared** to working **`full time`**, The **odds** go up **13.198 times**.
 
 **Fit Statistics**
 
