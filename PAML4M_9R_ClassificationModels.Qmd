@@ -2,10 +2,10 @@
 title: "Appendix R9: Classification Models"
 subtitle: "Binomial and Categorical Classification Models"
 author: "J. Alberto Espinosa"
-date: "1/4/2025"
+date: "10/4/2025"
 
 format: 
-   epub:
+   html:
      toc: true
      toc-depth: 2
      toc-expand: 2

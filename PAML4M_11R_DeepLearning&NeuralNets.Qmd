@@ -2,10 +2,10 @@
 title: "Appendix R11: Deep Learning and Neural Networks"
 subtitle: "Neural Networks"
 author: "J. Alberto Espinosa"
-date: "1/4/2025"
+date: "4/15/2025"
 
 format: 
-   pdf:
+   epub:
      toc: true
      toc-depth: 2
      toc-expand: 2

@@ -2,7 +2,7 @@
 title: "Appendix R10: Decision Trees"
 subtitle: "Bagging, Random Forest & Boosted Trees"
 author: "J. Alberto Espinosa"
-date: "1/4/2025"
+date: "4/15/2025"
 
 format: 
    html:
@@ -466,7 +466,7 @@ plot(bag.boston$mse,
 
 One shortcoming of trees is that there are no coefficients or p-values to ascertain which variables have stronger effects. But the **variable importance** computations help overcome this problem by displaying the importance of each variable to the tree model.
 
-Variable Importance Plot. Note: `type = 1` renders variable importance in terms of % contribution to **MSE reduction**, which is the type to use for quantitative models. Use `type = 2` for **purity** improvement in classification models.
+Variable Importance Plot. Note: **`type = 1`** renders variable importance in terms of % contribution to **MSE reduction**, which is the type to use for quantitative models. Use **`type = 2`** for **purity** improvement in classification models.
 
 **Variable Importance in BAgging trees**
 
@@ -482,9 +482,9 @@ round(importance(bag.boston,
 
 The 2 values of reported for variable importance are:
 
--   `type = 1` for **regression trees**: mean increase (over all trees) in accuracy **(% MSE explained)** when the variable is added to the the model
+-   **`type = 1`** for **regression trees**: mean increase (over all trees) in accuracy **(% MSE explained)** when the variable is added to the the model
 
--   `type = 2` for **classification trees**: mean increase (over all trees) in **purity** when the tree is split by that variable
+-   **`type = 2`** for **classification trees**: mean increase (over all trees) in **purity** when the tree is split by that variable
 
 Higher values are always best for types
 
@@ -531,10 +531,17 @@ bag.boston.25 <- randomForest(medv ~ .,
                               data = Boston.train, 
                               mtry = 13, 
                               ntree = 25)
+
 bag.pred.25 <- predict(bag.boston.25, 
                        newdata = Boston.test)
-plot(bag.boston.25)
-mean( (bag.pred.25 - Boston.test$medv) ^ 2 )
+
+bag.boston.25 # Take a quick look. 
+cat("\n", "10FCV RMSE =", sqrt(mean(bag.boston.25$mse)), "\n")
+
+plot(bag.boston.25$mse, 
+     main = "Boston Bagging Tree", 
+     xlab = "Number of Bootstrap Trees", ylab = "Out of Bag CV MSE",
+     type="l")
 ```
 
 Notice that the MSE is a bit higher than with 500 trees, although not by a lot.
@@ -566,6 +573,12 @@ bag.Carseats
 
 ```{r}
 plot(bag.Carseats)
+
+# If you want to display a legend, use this:
+legend("topright", 
+       legend = c("Missclassification", "Specificity", "Sensitivity"), 
+       col = 1:3, lty = 1)
+
 varImpPlot(bag.Carseats, type = 2, 
            main = "Bagging Tree with Carseats Data") 
 importance(bag.Carseats, type = 2)
@@ -655,6 +668,10 @@ rf.Carseats
 
 ```{r}
 plot(rf.Carseats) # The error flattens after about 70 bootstrapped trees
+legend("topright", 
+       legend = c("Missclassification", "Specificity", "Sensitivity"), 
+       col = 1:3, lty = 1)
+
 varImpPlot(bag.Carseats, type = 2, 
            main = "Bagging Tree with Carseats Data") 
 importance(bag.Carseats, type = 2)
